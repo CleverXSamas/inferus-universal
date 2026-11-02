@@ -14,3 +14,5 @@
 - 2026-11-02: login e cadastro usam Manus OAuth, conforme o contrato padrão do Webdev. O mesmo botão inicia login ou criação de conta no provedor; o Inferus nunca recebe senha.
 - 2026-11-02: usuários são identificados pelo `openId` do provedor e persistidos em `inferus_users`. Sessões são tokens aleatórios armazenados apenas por hash em `inferus_auth_sessions`, com cookie HttpOnly `webdev_app_session` de 30 dias.
 - 2026-11-02: o callback OAuth exige nonce em cookie curto, `redirectUri` fixo e troca de código no servidor. O fluxo aceita também JWT HS256 válido fornecido pelo Preview, validando assinatura, expiração e `appId`.
+- 2026-11-02: auditoria encontrou filtros sem abas para os modos `narrative` e `traits`; ambos foram adicionados, em vez de remover os presets.
+- 2026-11-02: geração de árvore usa expansão por fronteira a partir de `centro`. Isso impede que o sorteio mostre uma skill cujo pré-requisito não esteja presente e evita um bloqueio permanente.

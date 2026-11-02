@@ -14,6 +14,7 @@
 - [x] Persistir campanhas, participantes e eventos quando `DATABASE_URL` estiver configurado; declarar fallback de memória no health endpoint.
 - [x] Atualizar a sala por polling cancelável, limitar nome/mensagem e evitar token em listagens.
 - [x] Login/cadastro com Manus OAuth, nonce de callback, sessão HttpOnly de 30 dias, tabelas MySQL de usuários e sessões e suporte a login em outros dispositivos.
+- [x] Corrigir filtros de preset e a demonstração da skill tree: seleção inicial, estados bloqueado/disponível, layout radial estável e geração sem nós órfãos.
 - [ ] Associar campanhas e fichas ao `openId` autenticado e permitir gestão de membros por conta, além do convite privado.
 - [ ] Token Discord, OAuth2, URL pública e publicação do bot.
 - [ ] Adicionar funções `floor`, `ceil`, `min`, `max` e `abs` ao parser de fórmulas.
