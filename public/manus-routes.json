@@ -1,1 +1,1 @@
-{"routes":[{"path":"/","title":"Fragmentos — painel"}]}
+{"routes":[{"path":"/","title":"Inferus Universal"},{"path":"/campaign/:token","title":"Campanha privada"}]}

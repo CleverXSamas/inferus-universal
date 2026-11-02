@@ -1,6 +1,6 @@
-# Fragmentos
+# Inferus Universal
 
-Aplicação local-first para mesa de campanha: rolador auditável, ficha personalizável, skill tree radial determinística e adaptador de comandos Discord.
+Inferus Universal é uma ferramenta local-first para mesa de campanha: rolador auditável, fichas personalizáveis, skill trees radiais e uma sala de campanha privada para um DM e até nove jogadores.
 
 ## Rodar
 
@@ -11,16 +11,22 @@ npm run dev
 
 O servidor escuta em `http://localhost:3000`. `npm run build` produz o frontend em `dist/` e o servidor compilado em `dist-server/`. `npm run check` e `npm test` validam o núcleo.
 
-## O que mudou na versão 1.1
+## Campanha
 
-A aplicação começa perguntando como a mesa gosta de jogar, em vez de pedir uma planilha vazia. Há presets de pool de dados por pontos, dois dados de atributo, escada narrativa, ação com posição/efeito, d20 contido e pool modular por tamanhos de dado. Eles são sínteses originais, não oficiais, com fontes na interface.
+Abra a aba Campanha para criar uma mesa. O DM informa o nome da campanha e seu nome de mesa; a aplicação gera um convite privado com token aleatório. O DM pode copiar ou revogar esse convite, ver os participantes, iniciar/pausar a sessão e publicar no diário. Jogadores entram pelo link, escolhem um nome e veem a sala. O limite é rígido: 10 participantes no total, sendo 1 DM e até 9 jogadores.
 
-Os presets não são sistemas fechados. O usuário pode trocar o ponto de partida, editar o resultado, adicionar seções e inserir campos próprios. Na árvore, o fluxo também começa por uma escolha guiada e permite adicionar uma skill customizada conectada ao centro. A árvore visual é radial: o centro fica fixo e a progressão abre para fora conforme os nós são comprados.
+A sala atualiza por polling cancelável a cada cinco segundos. O servidor verifica o token, o papel e o limite; esconder o botão de DM no navegador não é a única proteção. Mensagens têm limite de 500 caracteres e nomes de 60 caracteres.
 
-As rolagens têm som opcional sintetizado localmente pela Web Audio API. Nenhum áudio ou dado da rolagem é enviado para um provedor de som.
+Quando `DATABASE_URL` está configurado, as tabelas `inferus_campaigns`, `inferus_campaign_participants`, `inferus_campaign_sessions` e `inferus_campaign_events` são criadas de forma idempotente e a campanha sobrevive ao reinício do processo. Sem banco, o health endpoint informa `campaignStorage: memory`; esse modo é apenas desenvolvimento e perde campanhas ao reiniciar.
 
-## Limites honestos
+O convite é uma capacidade privada, não autenticação forte de identidade. Nesta versão não há login próprio e nomes não são prova de identidade. Para uma operação pública com controle de conta, a próxima etapa é ligar Manus OAuth e associar participantes a usuários persistentes.
 
-O bot é um adaptador pronto para receber um `discord.js` Interaction, mas não registra uma aplicação Discord sem `DISCORD_TOKEN`, OAuth e URL pública. O demo guarda histórico e ficha no navegador para funcionar sem conta. Antes de produção, ligue autenticação, SQLite e armazenamento privado; o endpoint HTTP já está separado para essa evolução.
+## Núcleo aberto
 
-A suíte estatística de 10^6 amostras não roda no caminho rápido de CI desta entrega. O parser ainda precisa receber as funções `floor`, `ceil`, `min`, `max` e `abs` previstas na especificação original.
+Presets de pool de dados, atributos contidos, escada narrativa, ação com posição/efeito, d20 e traços são pontos de partida editáveis e não oficiais. Fichas aceitam novas seções e árvores começam no centro, expandindo conforme as compras e aceitando skills próprias.
+
+As rolagens usam fonte criptográfica, mantêm auditoria e têm som opcional local via Web Audio API. Nenhum áudio é enviado a um provedor externo.
+
+## Limites conhecidos
+
+O adaptador Discord ainda precisa de token, OAuth e URL pública. O parser de fórmulas ainda precisa de `floor`, `ceil`, `min`, `max` e `abs`; a suíte estatística de 10^6 amostras ainda é um job separado de CI.
