@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.0 — 2026-11-02
+- Login e cadastro com Manus OAuth em um fluxo único.
+- Usuários e sessões persistidos no MySQL para login em diferentes dispositivos.
+- Cookie seguro `webdev_app_session`, logout, endpoint de identidade e proteção de nonce/redirect no callback.
+- Controles de conta no cabeçalho da aplicação.
+
 ## 1.2.0 — 2026-11-02
 - Duelo removido da navegação e substituído por Campanha.
 - Campanha privada para 1 DM + até 9 jogadores.

@@ -11,3 +11,6 @@
 - 2026-11-02: Campanha aceita 1 DM + 9 jogadores, usa convite com token aleatório e valida papel no servidor. O convite é capacidade privada, não autenticação forte de identidade.
 - 2026-11-02: armazenamento MySQL é usado quando `DATABASE_URL` existe; sem banco, o modo memória é explicitamente reportado no health endpoint e é apenas desenvolvimento.
 - 2026-11-02: a sala usa polling cancelável em vez de WebSocket nesta fase, reduzindo infraestrutura enquanto mantém sincronização suficiente para até 10 pessoas.
+- 2026-11-02: login e cadastro usam Manus OAuth, conforme o contrato padrão do Webdev. O mesmo botão inicia login ou criação de conta no provedor; o Inferus nunca recebe senha.
+- 2026-11-02: usuários são identificados pelo `openId` do provedor e persistidos em `inferus_users`. Sessões são tokens aleatórios armazenados apenas por hash em `inferus_auth_sessions`, com cookie HttpOnly `webdev_app_session` de 30 dias.
+- 2026-11-02: o callback OAuth exige nonce em cookie curto, `redirectUri` fixo e troca de código no servidor. O fluxo aceita também JWT HS256 válido fornecido pelo Preview, validando assinatura, expiração e `appId`.

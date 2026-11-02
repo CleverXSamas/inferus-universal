@@ -13,7 +13,8 @@
 - [x] Fase 5: remover Duelo e entregar Campanha privada com 1 DM + até 9 jogadores, convite por token, papéis no servidor, sala, status, diário e limite rígido de 10.
 - [x] Persistir campanhas, participantes e eventos quando `DATABASE_URL` estiver configurado; declarar fallback de memória no health endpoint.
 - [x] Atualizar a sala por polling cancelável, limitar nome/mensagem e evitar token em listagens.
-- [ ] Manus OAuth para identidade forte associada a participantes.
+- [x] Login/cadastro com Manus OAuth, nonce de callback, sessão HttpOnly de 30 dias, tabelas MySQL de usuários e sessões e suporte a login em outros dispositivos.
+- [ ] Associar campanhas e fichas ao `openId` autenticado e permitir gestão de membros por conta, além do convite privado.
 - [ ] Token Discord, OAuth2, URL pública e publicação do bot.
 - [ ] Adicionar funções `floor`, `ceil`, `min`, `max` e `abs` ao parser de fórmulas.
 - [ ] Rodar suíte estatística de 10^6 amostras em job separado de CI.
