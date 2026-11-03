@@ -8,7 +8,7 @@
     "build": "tsc -p tsconfig.server.json && vite build",
     "start": "node dist-server/server/index.js",
     "check": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.server.json",
-    "test": "tsc -p tsconfig.test.json && node --test --test-isolation=none work/test-build/test/*.test.js",
+    "test": "tsc -p tsconfig.test.json && node --test --experimental-test-isolation=none work/test-build/test/*.test.js",
     "test:statistics": "node --import tsx test/statistical/dice.ts",
     "bot": "tsx bot/index.ts",
     "bot:register": "tsx bot/index.ts --register",
