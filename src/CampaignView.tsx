@@ -192,7 +192,7 @@ export function CampaignView() {
         Criar outra campanha
       </button>
       {!state ? (
-        <div className="campaign-grid">
+        <div className="campaign-grid campaign-lobby">
           <section className="card campaign-hero">
             <span className="eyebrow">CAMPANHA / MESA ONLINE</span>
             <h2>{access.inviteToken ? 'Entre na mesa' : 'Junte sua mesa sem complicar.'}</h2>
@@ -227,6 +227,37 @@ export function CampaignView() {
                 </>
               )}
             </div>
+          </section>
+          <section className="campaign-guide card">
+            <span className="eyebrow">DO CONVITE À AVENTURA</span>
+            <h3>
+              O próximo capítulo <br />
+              começa em companhia.
+            </h3>
+            <ol>
+              <li>
+                <span>01</span>
+                <div>
+                  <b>Prepare a mesa</b>
+                  <p>Dê um nome à campanha e assuma o papel de DM.</p>
+                </div>
+              </li>
+              <li>
+                <span>02</span>
+                <div>
+                  <b>Reúna seu grupo</b>
+                  <p>Compartilhe o convite privado com até 9 jogadores.</p>
+                </div>
+              </li>
+              <li>
+                <span>03</span>
+                <div>
+                  <b>Escrevam a história</b>
+                  <p>Conversem no diário e acompanhem a sessão juntos.</p>
+                </div>
+              </li>
+            </ol>
+            <span className="guide-footnote">Uma mesa, muitas histórias.</span>
           </section>
         </div>
       ) : (
@@ -285,9 +316,15 @@ export function CampaignView() {
                 Vincular participação à conta
               </button>
             )}
+            <h3 className="participants-title">
+              À mesa <span>{state.participants.length} / 10</span>
+            </h3>
             <div className="participants">
               {state.participants.map((p) => (
                 <div className="participant" key={p.id}>
+                  <span className="participant-avatar" aria-hidden="true">
+                    {p.name.slice(0, 2).toUpperCase()}
+                  </span>
                   <span>{p.name}</span>
                   <em>{p.role === 'dm' ? 'DM' : 'jogador'}</em>
                   {role === 'dm' && p.role !== 'dm' && (
@@ -349,7 +386,13 @@ export function CampaignView() {
             )}
           </section>
           <section className="card campaign-feed">
-            <h3>Diário da mesa</h3>
+            <div className="section-title">
+              <div>
+                <span className="eyebrow">CAPÍTULO EM ANDAMENTO</span>
+                <h3>Diário da mesa</h3>
+              </div>
+              <span aria-hidden="true">✧</span>
+            </div>
             <div className="feed">
               {state.events.map((e) => (
                 <div className={`feed-item ${e.kind}`} key={e.id}>
@@ -366,6 +409,7 @@ export function CampaignView() {
             </div>
             <div className="message-line">
               <input
+                aria-label="Mensagem para a mesa"
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 onKeyDown={(e) => {

@@ -114,7 +114,7 @@ export function SheetView() {
     }
   };
   return (
-    <section className="card">
+    <section className="card sheet-workspace">
       {user && (
         <div className="addline">
           <label>
@@ -181,6 +181,7 @@ export function SheetView() {
             ].map(([id, name]) => (
               <button
                 key={id}
+                aria-pressed={mode === id}
                 className={mode === id ? 'selected' : ''}
                 onClick={() => setMode(id)}
               >
@@ -211,7 +212,7 @@ export function SheetView() {
         </div>
       ) : (
         <>
-          <div className="hero-line">
+          <div className="hero-line sheet-hero">
             <label>
               Nome da ficha
               <input
@@ -278,140 +279,150 @@ export function SheetView() {
             </select>
             <span className="muted">Adicione o campo na seção desejada.</span>
           </div>
-          {sheet.sections.map((s, si) => (
-            <div className="sheet-section" key={s.id}>
-              <div className="section-title">
-                <h3>{s.label}</h3>
-                <button
-                  aria-label={`Remover seção ${s.label}`}
-                  onClick={() =>
-                    setSheet({ ...sheet, sections: sheet.sections.filter((_, i) => i !== si) })
-                  }
-                >
-                  ×
-                </button>
-              </div>
-              {s.fields.map((f, fi) => (
-                <div className="field" key={f.id}>
-                  <label>
-                    {f.label}
-                    <small>{f.id}</small>
-                    {f.type === 'calculated' || f.type === 'action' ? (
-                      <input
-                        aria-label={f.label}
-                        value={f.formula ?? f.expression ?? ''}
-                        onChange={(e) =>
-                          update(
-                            si,
-                            fi,
-                            f.type === 'calculated'
-                              ? { formula: e.target.value }
-                              : { expression: e.target.value },
-                          )
-                        }
-                      />
-                    ) : f.type === 'boolean' ? (
-                      <input
-                        aria-label={f.label}
-                        type="checkbox"
-                        checked={Boolean(f.value)}
-                        onChange={(e) => update(si, fi, { value: e.target.checked })}
-                      />
-                    ) : f.type === 'resource' ? (
-                      <span>
-                        <input
-                          aria-label={`${f.label} atual`}
-                          type="number"
-                          value={(f.value as any).current}
-                          onChange={(e) =>
-                            update(si, fi, {
-                              value: { ...(f.value as object), current: Number(e.target.value) },
-                            })
-                          }
-                        />
-                        <input
-                          aria-label={`${f.label} máximo`}
-                          type="number"
-                          value={(f.value as any).max}
-                          onChange={(e) =>
-                            update(si, fi, {
-                              value: { ...(f.value as object), max: Number(e.target.value) },
-                            })
-                          }
-                        />
-                      </span>
-                    ) : (
-                      <input
-                        aria-label={f.label}
-                        type={f.type === 'number' ? 'number' : 'text'}
-                        value={
-                          f.type === 'list'
-                            ? (f.value as string[]).join(', ')
-                            : String(f.value ?? '')
-                        }
-                        onChange={(e) =>
-                          update(si, fi, {
-                            value:
-                              f.type === 'number'
-                                ? Number(e.target.value)
-                                : f.type === 'list'
-                                  ? e.target.value.split(',').map((v) => v.trim())
-                                  : e.target.value,
-                          })
-                        }
-                      />
-                    )}
-                  </label>
-                  {f.type === 'calculated' && <strong>{calculated.values[f.id] ?? 'erro'}</strong>}
+          <div className="sheet-sections">
+            {sheet.sections.map((s, si) => (
+              <div className="sheet-section" key={s.id}>
+                <div className="section-title">
+                  <h3>{s.label}</h3>
                   <button
-                    aria-label={`Remover campo ${f.label}`}
+                    aria-label={`Remover seção ${s.label}`}
                     onClick={() =>
-                      setSheet({
-                        ...sheet,
-                        sections: sheet.sections.map((v, i) =>
-                          i === si ? { ...v, fields: v.fields.filter((_, j) => j !== fi) } : v,
-                        ),
-                      })
+                      setSheet({ ...sheet, sections: sheet.sections.filter((_, i) => i !== si) })
                     }
                   >
                     ×
                   </button>
                 </div>
-              ))}
-              <button
-                disabled={!fieldLabel.trim()}
-                onClick={() => {
-                  const f: Field = {
-                    id: `campo_${crypto.randomUUID().replaceAll('-', '').slice(0, 12)}`,
-                    label: fieldLabel.trim(),
-                    type: fieldType,
-                  };
-                  if (fieldType === 'calculated') f.formula = '0';
-                  else if (fieldType === 'action') f.expression = '1d20';
-                  else
-                    f.value =
-                      fieldType === 'number'
-                        ? 0
-                        : fieldType === 'boolean'
-                          ? false
-                          : fieldType === 'list'
-                            ? []
-                            : fieldType === 'resource'
-                              ? { current: 0, max: 0 }
-                              : '';
-                  setSheet({
-                    ...sheet,
-                    sections: sheet.sections.map((v, i) =>
-                      i === si ? { ...v, fields: [...v.fields, f] } : v,
-                    ),
-                  });
-                  setFieldLabel('');
-                }}
-              >
-                Adicionar campo nesta seção
-              </button>
-            </div>
-          ))}
+                <div className="section-fields">
+                  {s.fields.map((f, fi) => (
+                    <div className="field" key={f.id}>
+                      <label>
+                        {f.label}
+                        <small title="Referência para fórmulas">{f.id}</small>
+                        {f.type === 'calculated' || f.type === 'action' ? (
+                          <input
+                            aria-label={f.label}
+                            value={f.formula ?? f.expression ?? ''}
+                            onChange={(e) =>
+                              update(
+                                si,
+                                fi,
+                                f.type === 'calculated'
+                                  ? { formula: e.target.value }
+                                  : { expression: e.target.value },
+                              )
+                            }
+                          />
+                        ) : f.type === 'boolean' ? (
+                          <input
+                            aria-label={f.label}
+                            type="checkbox"
+                            checked={Boolean(f.value)}
+                            onChange={(e) => update(si, fi, { value: e.target.checked })}
+                          />
+                        ) : f.type === 'resource' ? (
+                          <span className="resource-inputs">
+                            <input
+                              aria-label={`${f.label} atual`}
+                              type="number"
+                              value={(f.value as any).current}
+                              onChange={(e) =>
+                                update(si, fi, {
+                                  value: {
+                                    ...(f.value as object),
+                                    current: Number(e.target.value),
+                                  },
+                                })
+                              }
+                            />
+                            <input
+                              aria-label={`${f.label} máximo`}
+                              type="number"
+                              value={(f.value as any).max}
+                              onChange={(e) =>
+                                update(si, fi, {
+                                  value: { ...(f.value as object), max: Number(e.target.value) },
+                                })
+                              }
+                            />
+                          </span>
+                        ) : (
+                          <input
+                            aria-label={f.label}
+                            type={f.type === 'number' ? 'number' : 'text'}
+                            value={
+                              f.type === 'list'
+                                ? (f.value as string[]).join(', ')
+                                : String(f.value ?? '')
+                            }
+                            onChange={(e) =>
+                              update(si, fi, {
+                                value:
+                                  f.type === 'number'
+                                    ? Number(e.target.value)
+                                    : f.type === 'list'
+                                      ? e.target.value.split(',').map((v) => v.trim())
+                                      : e.target.value,
+                              })
+                            }
+                          />
+                        )}
+                      </label>
+                      {f.type === 'calculated' && (
+                        <strong>{calculated.values[f.id] ?? 'erro'}</strong>
+                      )}
+                      <button
+                        aria-label={`Remover campo ${f.label}`}
+                        onClick={() =>
+                          setSheet({
+                            ...sheet,
+                            sections: sheet.sections.map((v, i) =>
+                              i === si ? { ...v, fields: v.fields.filter((_, j) => j !== fi) } : v,
+                            ),
+                          })
+                        }
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <button
+                  className="add-field"
+                  disabled={!fieldLabel.trim()}
+                  onClick={() => {
+                    const f: Field = {
+                      id: `campo_${crypto.randomUUID().replaceAll('-', '').slice(0, 12)}`,
+                      label: fieldLabel.trim(),
+                      type: fieldType,
+                    };
+                    if (fieldType === 'calculated') f.formula = '0';
+                    else if (fieldType === 'action') f.expression = '1d20';
+                    else
+                      f.value =
+                        fieldType === 'number'
+                          ? 0
+                          : fieldType === 'boolean'
+                            ? false
+                            : fieldType === 'list'
+                              ? []
+                              : fieldType === 'resource'
+                                ? { current: 0, max: 0 }
+                                : '';
+                    setSheet({
+                      ...sheet,
+                      sections: sheet.sections.map((v, i) =>
+                        i === si ? { ...v, fields: [...v.fields, f] } : v,
+                      ),
+                    });
+                    setFieldLabel('');
+                  }}
+                >
+                  Adicionar campo nesta seção
+                </button>
+              </div>
+            ))}
+          </div>
           {calculated.error && (
             <p className="error" role="alert">
               {calculated.error}

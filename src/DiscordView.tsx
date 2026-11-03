@@ -27,7 +27,7 @@ export function DiscordView() {
     }
   };
   return (
-    <section className="card">
+    <section className="card discord-workspace">
       <div className="eyebrow">DISCORD / ATIVAÇÃO</div>
       <h2>Leve o rolador para a sua mesa.</h2>
       <p className="muted">
