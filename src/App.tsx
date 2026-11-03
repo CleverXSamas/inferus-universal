@@ -10,7 +10,8 @@ import {
   effects,
 } from '../packages/tree-core';
 import { CampaignView } from './CampaignView';
-import { AuthPanel, AccountProvider } from './AuthPanel';
+import { AuthPanel, AccountProvider, useAccount } from './AuthPanel';
+import { DiscordView } from './DiscordView';
 import { SheetView } from './SheetView';
 
 const localKey = 'fragmentos-rolls';
@@ -437,12 +438,19 @@ function TreeView() {
   );
 }
 function Layout() {
-  const [tab, setTab] = useState(location.pathname.startsWith('/campaign/') ? 'campanha' : 'dados');
+  const [tab, setTab] = useState(
+    location.pathname.startsWith('/campaign/')
+      ? 'campanha'
+      : location.pathname === '/discord'
+        ? 'discord'
+        : 'dados',
+  );
   const items = [
     ['dados', 'Dado Aberto', '◈'],
     ['ficha', 'Criar ficha', '▣'],
     ['arvore', 'Criar árvore', '⌘'],
     ['campanha', 'Campanha', '✦'],
+    ...(useAccount().provider === 'chatgpt' ? [['discord', 'Discord', '◉']] : []),
   ];
   return (
     <div className="app">
@@ -484,6 +492,7 @@ function Layout() {
         {tab === 'ficha' && <SheetView />}
         {tab === 'arvore' && <TreeView />}
         {tab === 'campanha' && <CampaignView />}
+        {tab === 'discord' && <DiscordView />}
         <footer>
           Inferus Universal é uma ferramenta própria de mesa. Presets são sínteses originais, não
           oficiais.{' '}

@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.5.0 — 2026-11-03
+- Publicação em Cloudflare Workers/Sites com API HTTP e persistência D1.
+- Login ChatGPT na versão Sites; alternativa Node/MySQL e Manus preservada.
+- Transições de campanha atômicas por revisão no D1 para impedir perda de atualizações e respeitar o limite de participantes.
+- Receptor Discord com assinatura Ed25519, validação de timestamp e respostas privadas.
+- Página de ativação do Discord com token transitório, validação de aplicação e configuração automática de /rolar e endpoint HTTP.
+- Build Worker ESM com interface incorporada e empacotamento reproduzível.
+- Testes de SQLite/D1, assinatura, isolamento e fluxos de navegador do Worker.
+
 ## Não publicado — hospedagem
 - Docker multi-stage com dependências de build, imagem final sem usuário root e sem arquivos de ambiente.
 - Configuração Railway para aplicação web e processo Discord separados, com referência privada ao MySQL e à API.

@@ -2,31 +2,20 @@ import { createHash, randomBytes } from 'node:crypto';
 import mysql from 'mysql2/promise';
 import type { Pool, PoolConnection, RowDataPacket } from 'mysql2/promise';
 
-export type CampaignRole = 'dm' | 'player';
-export type CampaignStatus = 'lobby' | 'active' | 'paused' | 'closed';
-export type CampaignParticipant = {
-  id: string;
-  name: string;
-  role: CampaignRole;
-  online: boolean;
-  joinedAt: string;
-};
-export type CampaignEvent = {
-  id: string;
-  kind: 'message' | 'status' | 'system';
-  author: string;
-  body: string;
-  createdAt: string;
-};
-export type CampaignState = {
-  id: string;
-  name: string;
-  status: CampaignStatus;
-  participants: CampaignParticipant[];
-  events: CampaignEvent[];
-  createdAt: string;
-  revoked: boolean;
-};
+import type {
+  CampaignRole,
+  CampaignStatus,
+  CampaignState,
+  CampaignEvent,
+  CampaignParticipant,
+} from '../packages/campaign-types/index.js';
+export type {
+  CampaignRole,
+  CampaignStatus,
+  CampaignState,
+  CampaignEvent,
+  CampaignParticipant,
+} from '../packages/campaign-types/index.js';
 type Participant = CampaignParticipant & { openId?: string };
 type Session = { sessionHash: string; participantId: string; role: CampaignRole };
 type Internal = Omit<CampaignState, 'participants'> & {

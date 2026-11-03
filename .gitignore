@@ -7,3 +7,6 @@ dist-server
 work/
 playwright-report/
 test-results/
+site-dist/
+.sites-runtime/
+.wrangler/

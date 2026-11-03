@@ -29,9 +29,11 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run check
+      - run: npm run check:edge
       - run: npm test
       - run: npx playwright install --with-deps chromium
       - run: npm run test:browser
+      - run: npm run test:browser:edge
   statistics:
     runs-on: ubuntu-latest
     timeout-minutes: 10

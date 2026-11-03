@@ -1,17 +1,24 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 type User = { id: string; name: string; email: string | null };
-const Account = createContext<{ user: User | null; loading: boolean; logout: () => Promise<void> }>(
-  { user: null, loading: true, logout: async () => {} },
-);
+type AuthInfo = { provider: 'manus' | 'chatgpt'; loginUrl: string; logoutUrl?: string };
+const defaults: AuthInfo = { provider: 'manus', loginUrl: '/api/auth/login' };
+const Account = createContext<
+  AuthInfo & { user: User | null; loading: boolean; logout: () => Promise<void> }
+>({ ...defaults, user: null, loading: true, logout: async () => {} });
 export const useAccount = () => useContext(Account);
 export function AccountProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null),
-    [loading, setLoading] = useState(true);
+    [loading, setLoading] = useState(true),
+    [info, setInfo] = useState<AuthInfo>(defaults);
   useEffect(() => {
     const controller = new AbortController();
     fetch('/api/auth/me', { signal: controller.signal })
       .then((r) => (r.ok ? r.json() : Promise.reject()))
-      .then((data) => setUser(data.user))
+      .then((data) => {
+        setUser(data.user);
+        if (data.provider === 'chatgpt')
+          setInfo({ provider: 'chatgpt', loginUrl: data.loginUrl, logoutUrl: data.logoutUrl });
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
     return () => controller.abort();
@@ -21,10 +28,10 @@ export function AccountProvider({ children }: { children: ReactNode }) {
     if (!response.ok) throw new Error('Não foi possível sair.');
     setUser(null);
   };
-  return <Account.Provider value={{ user, loading, logout }}>{children}</Account.Provider>;
+  return <Account.Provider value={{ ...info, user, loading, logout }}>{children}</Account.Provider>;
 }
 export function AuthPanel() {
-  const { user, loading, logout } = useAccount(),
+  const { user, loading, logout, loginUrl, logoutUrl, provider } = useAccount(),
     [error, setError] = useState('');
   if (loading) return <div className="auth-panel muted">verificando sessão…</div>;
   return (
@@ -35,19 +42,27 @@ export function AuthPanel() {
             <span>{user.name.slice(0, 2).toUpperCase()}</span>
             <div>
               <strong>{user.name}</strong>
-              <small>{user.email || 'conta Manus'}</small>
+              <small>
+                {user.email || (provider === 'chatgpt' ? 'conta ChatGPT' : 'conta Manus')}
+              </small>
             </div>
           </div>
-          <button
-            className="auth-button quiet"
-            onClick={() => logout().catch((e) => setError(e.message))}
-          >
-            Sair
-          </button>
+          {provider === 'chatgpt' ? (
+            <a className="auth-button quiet" href={logoutUrl} target="_top">
+              Sair
+            </a>
+          ) : (
+            <button
+              className="auth-button quiet"
+              onClick={() => logout().catch((e) => setError(e.message))}
+            >
+              Sair
+            </button>
+          )}
         </>
       ) : (
-        <a className="auth-link" href="/api/auth/login">
-          Entrar / criar conta
+        <a className="auth-link" href={loginUrl} target="_top">
+          Entrar / criar conta{provider === 'chatgpt' ? ' com ChatGPT' : ''}
         </a>
       )}
       {error && <small className="auth-error">{error}</small>}
