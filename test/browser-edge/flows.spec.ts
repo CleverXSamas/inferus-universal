@@ -56,9 +56,10 @@ test('Worker: ativação Discord limpa o token e apresenta a instalação', asyn
   await page.goto('/discord');
   await page.getByRole('link', { name: 'Entre para configurar o Discord' }).click();
   await page.getByRole('button', { name: 'Discord', exact: true }).click();
+  await page.getByText('Configurar ou atualizar comandos', { exact: true }).click();
   await page.getByLabel('Novo token do bot').fill('edge-fixture-token');
-  await page.getByRole('button', { name: 'Ativar /rolar', exact: true }).click();
-  await expect(page.getByRole('status')).toContainText('Comando ativado');
+  await page.getByRole('button', { name: 'Atualizar /rolar e /ajuda', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText('Comandos ativados');
   await expect(page.getByLabel('Novo token do bot')).toHaveValue('');
   await expect(page.getByRole('link', { name: 'Adicionar ao servidor Discord' })).toHaveAttribute(
     'href',

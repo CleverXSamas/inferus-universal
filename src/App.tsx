@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import { roll, PRESETS, RollRecord } from '../packages/dice-core';
-import { TreeView } from './TreeView';
 import { CampaignView } from './CampaignView';
 import { AuthPanel, AccountProvider, useAccount } from './AuthPanel';
 import { DiscordView } from './DiscordView';
 import { SheetView } from './SheetView';
+
+const TreeView = lazy(() => import('./TreeView').then((module) => ({ default: module.TreeView })));
 
 function ArrowUpRight() {
   return (
@@ -430,7 +431,17 @@ function Layout() {
         </div>
         {tab === 'dados' && <Dice />}
         {tab === 'ficha' && <SheetView />}
-        {tab === 'arvore' && <TreeView />}
+        {tab === 'arvore' && (
+          <Suspense
+            fallback={
+              <div className="card" aria-live="polite">
+                Abrindo o mapa de skills…
+              </div>
+            }
+          >
+            <TreeView />
+          </Suspense>
+        )}
         {tab === 'campanha' && <CampaignView />}
         {tab === 'discord' && <DiscordView />}
         <footer>

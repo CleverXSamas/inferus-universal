@@ -1,3 +1,13 @@
+import {
+  expressionSuggestions,
+  embedsPermitted,
+  presentMessage,
+  type DiscordMessage,
+  formatHelp,
+  formatRoll,
+  formatRollError,
+  rollOptions,
+} from '../packages/discord-ui/index.js';
 import { roll } from '../packages/dice-core/index.js';
 import { json, type Env } from './types.js';
 const hexBytes = (value: string) =>
@@ -38,47 +48,49 @@ export async function discordInteraction(request: Request, env: Env) {
   } catch {
     return json({ error: 'Interação inválida.' }, 400);
   }
+  if (!interaction || typeof interaction !== 'object')
+    return json({ error: 'Interação inválida.' }, 400);
   if (interaction.application_id && interaction.application_id !== env.DISCORD_CLIENT_ID)
     return json({ error: 'Aplicação Discord incorreta.' }, 403);
   if (interaction.type === 1) return json({ type: 1 });
-  if (interaction.type !== 2 || interaction.data?.name !== 'rolar')
-    return json({ type: 4, data: { content: 'Comando não reconhecido.', flags: 64 } });
+  const items = Array.isArray(interaction.data?.options) ? interaction.data.options : [];
+  if (interaction.type === 4) {
+    const focused = items.find((o: any) => o?.focused === true && o.name === 'expressao');
+    return json({
+      type: 8,
+      data: {
+        choices:
+          interaction.data?.name === 'rolar' && focused ? expressionSuggestions(focused.value) : [],
+      },
+    });
+  }
+  const respond = (data: DiscordMessage, privateReply = true) =>
+    json({
+      type: 4,
+      data: {
+        ...presentMessage(data, embedsPermitted(interaction.app_permissions)),
+        flags: privateReply ? 64 : 0,
+        allowed_mentions: { parse: [] },
+      },
+    });
+  if (interaction.type !== 2)
+    return respond({ content: 'Interação não reconhecida. Use /ajuda para começar.' });
   const options = Object.fromEntries(
-    (interaction.data.options ?? []).map((o: any) => [o.name, o.value]),
+    items.filter((o: any) => o && typeof o.name === 'string').map((o: any) => [o.name, o.value]),
   );
+  if (interaction.data?.name === 'ajuda')
+    return respond(formatHelp(options.topico, new URL(request.url).origin));
+  if (interaction.data?.name !== 'rolar')
+    return respond({ content: 'Comando não reconhecido. Use /ajuda para consultar o Inferus.' });
   try {
-    if (options.alvo !== undefined && typeof options.alvo !== 'number')
-      throw new Error('Alvo inválido.');
-    const result = roll(String(options.expressao ?? ''), {
-      target: options.alvo as number | undefined,
+    const input = rollOptions(options);
+    const result = roll(input.expression, {
+      target: input.target,
       user: interaction.member?.user?.id ?? interaction.user?.id,
       channel: 'discord',
     });
-    const audit = result.groups
-      .map((g) => g.dice.map((d) => (d.kept ? d.total : `~~${d.total}~~`)).join(' · '))
-      .join('\n');
-    const content = `**${result.expression}** → **${result.total}**\n${audit}`;
-    return json({
-      type: 4,
-      data: {
-        content:
-          content.length > 1900 ? `${content.slice(0, 1850)}\n… auditoria abreviada.` : content,
-        flags: options.privado === true ? 64 : 0,
-        allowed_mentions: { parse: [] },
-      },
-    });
+    return respond(formatRoll(result, input.reason, new URL(request.url).origin), input.private);
   } catch (e) {
-    return json({
-      type: 4,
-      data: {
-        content:
-          `Não foi possível rolar: ${e instanceof Error ? e.message : 'Expressão inválida.'}`.slice(
-            0,
-            1900,
-          ),
-        flags: 64,
-        allowed_mentions: { parse: [] },
-      },
-    });
+    return respond(formatRollError(e));
   }
 }

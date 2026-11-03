@@ -9,7 +9,7 @@ import {
 import type { CampaignStatus } from '../packages/campaign-types/index.js';
 import { createEdgeCampaignStore } from './campaigns.js';
 import { discordInteraction } from './discord.js';
-import { setupDiscord } from './discord-setup.js';
+import { discordConfig, setupDiscord } from './discord-setup.js';
 import { ApiError, json, type Env } from './types.js';
 // Replaced at build time with the Vite output; no standalone assets or Node server required.
 import { assets } from './site-assets.js';
@@ -82,6 +82,8 @@ export default {
         if (origin && origin !== url.origin)
           throw new ApiError(403, 'Origem da requisição inválida.');
       }
+      if (url.pathname === '/api/discord/config' && request.method === 'GET')
+        return json(discordConfig(url.origin, env));
       if (url.pathname === '/api/discord/setup' && request.method === 'POST') {
         requireOwner();
         const b = await body(request);

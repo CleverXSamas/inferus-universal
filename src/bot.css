@@ -1,0 +1,1346 @@
+.bot-studio {
+  --bot-line: #4e3a65;
+  --bot-muted: #ab97bd;
+  --bot-panel: #1e1728;
+  --bot-accent: #c6a6ec;
+}
+.bot-studio button,
+.bot-studio a.bot-install-link {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+}
+.bot-studio button svg {
+  flex-shrink: 0;
+}
+.bot-hero {
+  display: flex;
+  align-items: center;
+  gap: 27px;
+  padding: 35px;
+  border: 1px solid #614374;
+  border-radius: 13px;
+  background:
+    radial-gradient(ellipse at 0 30%, #67457755, transparent 65%),
+    linear-gradient(115deg, #2b1e37, #1e1726);
+  margin-bottom: 24px;
+}
+.bot-emblem {
+  width: 100px;
+  height: 112px;
+  flex-shrink: 0;
+  border: 1px solid #705283;
+  border-radius: 18px;
+  background: linear-gradient(145deg, #49305888, #2b1c36);
+  padding: 15px;
+  color: #c3a0de;
+  display: grid;
+  place-items: center;
+}
+.bot-emblem svg {
+  width: 100%;
+  height: 100%;
+}
+.bot-hero .eyebrow {
+  font-size: 8px;
+  color: #b597c9;
+  margin-bottom: 12px;
+}
+.bot-hero h2 {
+  font-size: 30px;
+  line-height: 1.35;
+  color: #ebdcf5;
+  margin: 0 0 14px;
+}
+.bot-hero p {
+  font-size: 12px;
+  color: #bca4cb;
+  max-width: 490px;
+  margin: 0;
+  line-height: 1.8;
+}
+.bot-feature-tags {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+  margin-top: 20px;
+}
+.bot-feature-tags span {
+  font-size: 8px;
+  color: #c2a6d4;
+  border: 1px solid #60436f;
+  background: #382641;
+  border-radius: 4px;
+  padding: 5px 8px;
+}
+.bot-hero-note {
+  margin-left: auto;
+  align-self: stretch;
+  border-left: 1px solid #523b60;
+  padding-left: 30px;
+  min-width: 180px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.bot-hero-note > span {
+  font-size: 33px;
+  color: #b68dce;
+  margin-bottom: 18px;
+}
+.bot-hero-note p {
+  font-size: 10px;
+  color: #a389b6;
+  line-height: 1.9;
+}
+.bot-hero-note b {
+  font-weight: 400;
+  color: #ccb0de;
+}
+.bot-workspace-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  gap: 22px;
+  align-items: start;
+}
+.bot-playground,
+.bot-install,
+.bot-command-guide {
+  min-width: 0;
+  background: #1c1524;
+  border: 1px solid #50395f;
+  border-radius: 12px;
+  overflow: hidden;
+}
+.bot-section-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+  padding: 26px 25px;
+  border-bottom: 1px solid #473052;
+  background: #271c31;
+}
+.bot-section-heading .eyebrow {
+  font-size: 7px;
+  color: #a987c0;
+  margin-bottom: 8px;
+}
+.bot-section-heading h3 {
+  font-size: 20px;
+  font-weight: 500;
+  margin: 0;
+  color: #e0c9f0;
+  line-height: 1.5;
+}
+.bot-local-tag {
+  white-space: nowrap;
+  font-size: 8px;
+  padding: 5px 7px;
+  border: 1px solid #725380;
+  border-radius: 4px;
+  color: #bea0d2;
+  background: #392443;
+}
+.bot-builder {
+  padding: 25px;
+  display: grid;
+  gap: 20px;
+}
+.bot-builder label {
+  font-size: 11px;
+  color: #cbb5da;
+}
+.bot-builder input {
+  background: #120d19;
+  border-color: #634373;
+  font-size: 12px;
+}
+.bot-builder > label input {
+  font-family: 'Space Mono', monospace;
+  font-size: 19px;
+  padding: 16px;
+}
+.bot-quick-presets {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+  margin-top: -7px;
+}
+.bot-quick-presets button {
+  font-size: 9px;
+  padding: 7px 9px;
+  color: #bca1ce;
+  border-color: #60406e;
+  background: #2b1c34;
+  font-weight: 400;
+}
+.bot-quick-presets button:hover:not(:disabled) {
+  background: #49305a;
+  border-color: #b086cd;
+}
+.bot-builder .form-two {
+  gap: 13px;
+  grid-template-columns: 1.5fr 1fr;
+}
+.bot-privacy {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  justify-content: flex-start !important;
+  text-align: left;
+  background: #281b32;
+  border: 1px solid #51345e;
+  border-radius: 8px;
+  padding: 15px;
+  color: #c9afdb;
+  font-weight: 400;
+  width: 100%;
+}
+.bot-privacy:hover:not(:disabled) {
+  background: #3b2549;
+  border-color: #8d669f;
+}
+.bot-privacy.is-private {
+  background: #352445;
+  border-color: #a881c2;
+}
+.privacy-track {
+  display: block;
+  position: relative;
+  flex-shrink: 0;
+  width: 32px;
+  height: 18px;
+  background: #21152a;
+  border: 1px solid #78558d;
+  border-radius: 20px;
+}
+.privacy-track i {
+  display: block;
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  left: 3px;
+  top: 3px;
+  background: #9f7db5;
+  border-radius: 50%;
+  transition:
+    transform 0.15s,
+    background 0.15s;
+}
+.is-private .privacy-track {
+  background: #76528f;
+}
+.is-private .privacy-track i {
+  background: #eddbfb;
+  transform: translateX(14px);
+}
+.bot-privacy b {
+  display: block;
+  font-size: 11px;
+  font-weight: 500;
+}
+.bot-privacy small {
+  display: block;
+  color: #a686ba;
+  font-size: 9px;
+  font-weight: 400;
+  margin-top: 6px;
+  line-height: 1.6;
+}
+.bot-builder-actions {
+  display: flex;
+  gap: 9px;
+  flex-wrap: wrap;
+}
+.bot-builder-actions button {
+  font-size: 11px;
+  padding: 11px 15px;
+}
+.bot-builder .error {
+  margin: 0;
+  font-size: 12px;
+}
+.discord-preview {
+  border-top: 1px solid #493154;
+  background: #16131c;
+  padding: 0 25px 19px;
+}
+.discord-channel {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  border-bottom: 1px solid #373040;
+  padding: 15px 0;
+  font-size: 11px;
+  color: #b9a8c7;
+}
+.discord-channel > span {
+  color: #8e7e9d;
+  font-size: 20px;
+}
+.discord-channel small {
+  font-size: 6px;
+  color: #82718f;
+  margin-left: auto;
+  letter-spacing: 0.05em;
+}
+.discord-preview-message {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 23px 0 20px;
+}
+.discord-bot-avatar {
+  display: grid;
+  place-items: center;
+  width: 35px;
+  height: 35px;
+  border: 1px solid #8e67a4;
+  border-radius: 50%;
+  background: #6a467e;
+  color: #e3caf4;
+  flex-shrink: 0;
+}
+.discord-preview-body {
+  min-width: 0;
+  flex: 1;
+}
+.discord-bot-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #d8c1e8;
+  font-size: 12px;
+  line-height: 1.4;
+  margin: 0 0 11px;
+  font-weight: 500;
+  flex-wrap: wrap;
+}
+.discord-bot-name > span {
+  font-size: 6px;
+  color: #eee5f6;
+  background: #72578d;
+  border-radius: 3px;
+  padding: 2px 4px;
+}
+.discord-bot-name > small {
+  font-size: 8px;
+  color: #897991;
+  font-weight: 400;
+  margin-left: 4px;
+}
+.discord-result-embed {
+  padding: 18px;
+  background: #292332;
+  border: 1px solid #3c3247;
+  border-left: 3px solid #b699df;
+  border-radius: 4px 8px 8px 4px;
+}
+.discord-result-embed.passed {
+  border-left-color: #81bba4;
+}
+.discord-result-embed.failed {
+  border-left-color: #df8fa4;
+}
+.preview-result-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: #d9c4e8;
+  display: block;
+  margin-bottom: 10px;
+  overflow-wrap: anywhere;
+}
+.preview-result-number {
+  display: block;
+  font-family: 'Space Mono', monospace;
+  font-size: 37px;
+  font-weight: 400;
+  color: #eadcf5;
+  line-height: 1.35;
+  letter-spacing: -0.04em;
+  overflow-wrap: anywhere;
+  margin-bottom: 8px;
+}
+.discord-result-embed > code {
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  padding: 4px 7px;
+  background: #1b1424;
+  border-radius: 4px;
+  color: #c6b2d6;
+}
+.discord-result-embed > p {
+  font-size: 11px;
+  color: #9f8cab;
+  margin: 18px 0 0;
+  line-height: 1.8;
+}
+.preview-dice-groups {
+  display: grid;
+  gap: 14px;
+  border-top: 1px solid #45354e;
+  margin-top: 18px;
+  padding-top: 14px;
+}
+.preview-dice-groups > div > small {
+  display: block;
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  color: #a48cb6;
+  margin-bottom: 9px;
+}
+.preview-dice-groups > div > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.preview-dice-groups span {
+  display: grid;
+  place-items: center;
+  min-width: 27px;
+  height: 27px;
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  border: 1px dashed #594764;
+  border-radius: 5px;
+  color: #8b7699;
+  padding: 0 6px;
+}
+.preview-dice-groups .kept {
+  color: #e5cff5;
+  background: #604575;
+  border: 1px solid #9271a9;
+}
+.preview-dice-groups .discarded {
+  text-decoration: line-through;
+}
+.preview-result-meta {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+  border-top: 1px solid #45354e;
+  padding-top: 14px;
+}
+.preview-result-meta span {
+  font-size: 9px;
+  color: #a88fb8;
+}
+.preview-result-meta b {
+  font-weight: 500;
+  color: #d3bce2;
+  margin-left: 4px;
+}
+.preview-audit-note {
+  display: block;
+  font-size: 7px;
+  color: #927c9f;
+  line-height: 1.7;
+  margin-top: 16px;
+}
+.preview-caption {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 8px;
+  color: #8e7c9b;
+  line-height: 1.7;
+}
+.preview-caption i {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #a38ab7;
+  flex-shrink: 0;
+}
+.bot-install {
+  padding-bottom: 15px;
+}
+.bot-install .bot-section-heading {
+  padding-bottom: 23px;
+}
+.bot-install .bot-section-heading h3 {
+  font-size: 19px;
+  max-width: 290px;
+}
+.bot-service-state {
+  display: flex;
+  gap: 11px;
+  align-items: flex-start;
+  padding: 15px;
+  margin: 20px 22px 0;
+  border: 1px solid #60485e;
+  background: #32232f;
+  border-radius: 7px;
+}
+.bot-service-state > i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #c0a080;
+  margin-top: 6px;
+  flex-shrink: 0;
+}
+.bot-service-state b {
+  display: block;
+  font-weight: 500;
+  font-size: 11px;
+  color: #cbb4c9;
+  margin-bottom: 5px;
+}
+.bot-service-state p {
+  font-size: 9px;
+  color: #a68fa5;
+  line-height: 1.7;
+  margin: 0;
+}
+.bot-service-state.prepared {
+  background: #1e302b;
+  border-color: #3c5d4c;
+}
+.bot-service-state.prepared > i {
+  background: #8fbca7;
+}
+.bot-service-state.prepared b {
+  color: #bbd7c8;
+}
+.bot-service-state.prepared p {
+  color: #8eae9b;
+}
+.bot-install > .help-text {
+  margin: 16px 23px 0;
+}
+.bot-install-steps {
+  list-style: none;
+  padding: 0 22px;
+  margin: 27px 0 24px;
+  display: grid;
+  gap: 25px;
+}
+.bot-install-steps > li {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+.install-step-number {
+  display: grid;
+  place-items: center;
+  font-family: 'Space Mono', monospace;
+  color: #b28ac6;
+  font-size: 10px;
+  border: 1px solid #6b4879;
+  border-radius: 6px;
+  background: #32203d;
+  width: 29px;
+  height: 29px;
+  flex-shrink: 0;
+}
+.bot-install-steps > li > div {
+  min-width: 0;
+  flex: 1;
+  padding: 4px 0 0;
+}
+.bot-install-steps h4 {
+  font-family: Manrope, system-ui, sans-serif;
+  color: #d6bde7;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.6;
+  margin: 0 0 9px;
+}
+.bot-install-steps p {
+  font-size: 10px;
+  color: #ab8ebc;
+  line-height: 1.8;
+  margin: 0 0 14px;
+}
+.bot-install-link {
+  text-decoration: none;
+  background: #c6ace9;
+  border: 1px solid #c6ace9;
+  border-radius: 7px;
+  color: #281833;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 11px 12px;
+  line-height: 1.6;
+}
+.bot-install-link:hover {
+  background: #ddc6fa;
+  color: #281833;
+}
+.bot-install-steps .auth-link {
+  font-size: 10px;
+}
+.bot-admin-setup {
+  border: 1px solid #634071;
+  border-radius: 7px;
+  background: #2a1a34;
+  overflow: hidden;
+}
+.bot-admin-setup summary {
+  padding: 13px 12px;
+  font-size: 10px;
+  color: #d1aedf;
+  cursor: pointer;
+  line-height: 1.6;
+}
+.bot-admin-setup[open] summary {
+  border-bottom: 1px solid #573562;
+  margin-bottom: 15px;
+}
+.bot-admin-setup > p {
+  padding: 0 13px;
+  font-size: 10px;
+}
+.bot-admin-setup form {
+  padding: 0 13px 15px;
+}
+.bot-admin-setup label {
+  font-size: 10px;
+  color: #c8a9d9;
+  margin-top: 17px;
+}
+.bot-admin-setup input {
+  background: #170e1f;
+  border-color: #694677;
+  font-size: 12px;
+}
+.bot-admin-setup #token-note {
+  font-size: 9px;
+  line-height: 1.8;
+  margin: 12px 0;
+  color: #a684b8;
+}
+.bot-admin-setup button {
+  font-size: 11px;
+  width: 100%;
+}
+.bot-portal-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 9px;
+  color: #c89ee1;
+  margin: 0 13px;
+  text-underline-offset: 4px;
+  line-height: 1.6;
+}
+.bot-command-copy {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 9px;
+  border: 1px solid #573866;
+  border-radius: 6px;
+  background: #160e1e;
+}
+.bot-command-copy code {
+  flex: 1;
+  min-width: 0;
+  font-size: 9px;
+  color: #c1a2d3;
+  overflow-wrap: anywhere;
+}
+.bot-command-copy .icon-btn {
+  padding: 5px;
+  min-width: 24px;
+  min-height: 26px;
+}
+.bot-install .editor-notice,
+.bot-install .error {
+  font-size: 10px;
+  margin: 15px 22px;
+  padding: 12px;
+  line-height: 1.8;
+}
+.bot-connection-details {
+  border-top: 1px solid #483050;
+  padding: 16px 22px 3px;
+}
+.bot-connection-details summary {
+  font-size: 10px;
+  color: #b28cc6;
+  cursor: pointer;
+  padding-bottom: 9px;
+}
+.bot-connection-details label {
+  font-size: 9px;
+  margin: 14px 0;
+  color: #a487b6;
+}
+.bot-connection-details input {
+  font-size: 10px;
+  background: #160f1d;
+  border-color: #50335c;
+  padding: 9px;
+  color: #a78cba;
+}
+.bot-connection-details button {
+  font-size: 9px;
+}
+.bot-command-guide {
+  margin-top: 25px;
+}
+.bot-command-guide .bot-section-heading {
+  padding: 26px 28px;
+}
+.bot-guide-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  color: #b998ce;
+  border: 1px solid #634473;
+  padding: 7px 9px;
+  border-radius: 5px;
+  white-space: nowrap;
+}
+.bot-example-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  padding: 25px;
+}
+.bot-example-grid article {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  border: 1px solid #51325e;
+  border-radius: 9px;
+  padding: 20px;
+  background: linear-gradient(130deg, #302039, #21152b);
+  min-width: 0;
+}
+.example-die {
+  color: #b589ce;
+  display: block;
+  margin-bottom: 16px;
+}
+.bot-example-grid h4 {
+  font-family: Manrope, system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -0.015em;
+  color: #ddc2ed;
+  margin: 0 0 13px;
+  line-height: 1.5;
+}
+.bot-example-grid article > code {
+  font-size: 13px;
+  font-family: 'Space Mono', monospace;
+  color: #d0b0e7;
+  background: #1a0f24;
+  border: 1px solid #53335f;
+  border-radius: 5px;
+  padding: 7px 9px;
+}
+.bot-example-grid p {
+  font-size: 10px;
+  color: #a78ab9;
+  line-height: 1.8;
+  margin: 15px 0 22px;
+}
+.bot-example-grid article > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  border-top: 1px solid #4f305c;
+  padding-top: 12px;
+  margin-top: auto;
+  width: 100%;
+}
+.bot-example-grid article > div > .quiet {
+  font-size: 9px;
+  border: 0;
+  background: transparent;
+  color: #c49edc;
+  font-weight: 400;
+  padding: 3px 0;
+}
+.bot-example-grid article > div > .quiet:hover {
+  color: #ead2fc;
+}
+.bot-example-grid article .icon-btn {
+  padding: 5px;
+  min-width: 25px;
+  min-height: 25px;
+}
+.bot-guide-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 25px;
+  padding: 22px 27px 28px;
+  border-top: 1px solid #463050;
+  background: #201628;
+}
+.bot-guide-options article {
+  min-width: 0;
+}
+.bot-guide-options b {
+  color: #d6b7e9;
+  font-size: 12px;
+  font-weight: 500;
+}
+.bot-guide-options p {
+  color: #a98abc;
+  font-size: 10px;
+  line-height: 1.8;
+  margin: 10px 0 15px;
+}
+.bot-guide-options code {
+  font-size: 9px;
+  color: #b48dcb;
+}
+.bot-faq {
+  display: grid;
+  grid-template-columns: 1fr 1.6fr;
+  gap: 45px;
+  border-top: 1px solid #403046;
+  margin-top: 30px;
+  padding: 30px 0 5px;
+}
+.bot-faq > .eyebrow,
+.bot-faq .eyebrow {
+  font-size: 7px;
+  color: #9c7bae;
+}
+.bot-faq h3 {
+  font-size: 22px;
+  line-height: 1.5;
+  margin-top: 12px;
+  color: #cdb1df;
+  max-width: 300px;
+}
+.bot-faq details {
+  border-bottom: 1px solid #3e2d46;
+  padding: 0 0 15px;
+  margin-bottom: 15px;
+}
+.bot-faq summary {
+  font-size: 12px;
+  line-height: 1.8;
+  color: #bca1ce;
+  cursor: pointer;
+}
+.bot-faq p {
+  font-size: 11px;
+  color: #9f82b1;
+  line-height: 1.9;
+  margin: 13px 0 0;
+}
+@media (max-width: 1250px) {
+  .bot-hero-note {
+    display: none;
+  }
+  .bot-workspace-grid {
+    gap: 17px;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  }
+  .bot-section-heading {
+    padding: 23px 20px;
+  }
+  .bot-section-heading h3 {
+    font-size: 18px;
+  }
+  .bot-builder {
+    padding: 22px 20px;
+  }
+  .discord-preview {
+    padding: 0 20px 18px;
+  }
+  .bot-install .bot-section-heading h3 {
+    font-size: 18px;
+  }
+  .bot-install-steps {
+    padding: 0 18px;
+    gap: 25px;
+  }
+  .bot-install-steps > li {
+    gap: 11px;
+  }
+  .install-step-number {
+    width: 26px;
+    height: 26px;
+    font-size: 9px;
+  }
+  .bot-service-state {
+    margin: 20px 18px 0;
+  }
+  .bot-example-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .bot-command-guide .bot-section-heading h3 {
+    font-size: 19px;
+  }
+  .bot-guide-label {
+    font-size: 8px;
+  }
+  .bot-builder .form-two {
+    grid-template-columns: 1fr;
+  }
+  .discord-channel small {
+    display: none;
+  }
+}
+@media (max-width: 960px) {
+  .bot-workspace-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 22px;
+  }
+  .bot-hero {
+    padding: 29px;
+    gap: 24px;
+  }
+  .bot-emblem {
+    width: 77px;
+    height: 88px;
+    padding: 11px;
+    border-radius: 14px;
+  }
+  .bot-hero h2 {
+    font-size: 27px;
+  }
+  .bot-builder .form-two {
+    grid-template-columns: 1.5fr 1fr;
+  }
+  .bot-builder > label input {
+    font-size: 21px;
+  }
+  .bot-section-heading h3 {
+    font-size: 22px;
+  }
+  .bot-install .bot-section-heading h3 {
+    font-size: 22px;
+    max-width: none;
+  }
+  .bot-local-tag {
+    font-size: 9px;
+  }
+  .discord-channel small {
+    display: block;
+  }
+  .bot-install-steps {
+    padding: 0 24px;
+    gap: 28px;
+  }
+  .bot-install-steps > li {
+    gap: 17px;
+  }
+  .install-step-number {
+    width: 32px;
+    height: 32px;
+    font-size: 10px;
+  }
+  .bot-install-steps h4 {
+    font-size: 14px;
+  }
+  .bot-install-steps p {
+    font-size: 12px;
+  }
+  .bot-install-link {
+    font-size: 12px;
+  }
+  .bot-install-steps .auth-link {
+    font-size: 12px;
+  }
+  .bot-admin-setup {
+    max-width: 470px;
+  }
+  .bot-admin-setup summary {
+    font-size: 12px;
+    padding: 15px;
+  }
+  .bot-admin-setup label {
+    font-size: 11px;
+  }
+  .bot-admin-setup #token-note {
+    font-size: 10px;
+  }
+  .bot-admin-setup > p {
+    font-size: 11px;
+  }
+  .bot-portal-link {
+    font-size: 10px;
+  }
+  .bot-install .editor-notice,
+  .bot-install .error {
+    font-size: 12px;
+  }
+  .bot-service-state {
+    margin: 23px 24px 0;
+    padding: 17px;
+  }
+  .bot-service-state b {
+    font-size: 12px;
+  }
+  .bot-service-state p {
+    font-size: 11px;
+  }
+  .bot-command-copy {
+    max-width: 400px;
+  }
+  .bot-command-copy code {
+    font-size: 11px;
+  }
+  .bot-example-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding: 22px;
+  }
+  .bot-guide-options {
+    gap: 20px;
+    padding: 23px;
+  }
+  .bot-command-guide .bot-section-heading {
+    flex-wrap: wrap;
+    padding: 25px;
+  }
+  .bot-faq {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+  .bot-faq h3 {
+    max-width: 400px;
+  }
+  .bot-connection-details {
+    padding: 20px 24px 8px;
+  }
+  .bot-connection-details summary {
+    font-size: 11px;
+  }
+  .bot-connection-details label {
+    font-size: 10px;
+  }
+  .bot-connection-details input {
+    font-size: 11px;
+  }
+}
+@media (max-width: 680px) {
+  .bot-hero {
+    padding: 25px 22px;
+    gap: 20px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .bot-emblem {
+    width: 54px;
+    height: 60px;
+    padding: 8px;
+    border-radius: 11px;
+  }
+  .bot-hero > div:nth-child(2) {
+    width: 100%;
+  }
+  .bot-hero .eyebrow {
+    font-size: 7px;
+  }
+  .bot-hero h2 {
+    font-size: 28px;
+    line-height: 1.45;
+  }
+  .bot-hero p {
+    font-size: 12px;
+  }
+  .bot-feature-tags {
+    gap: 6px;
+  }
+  .bot-feature-tags span {
+    font-size: 8px;
+    padding: 6px 7px;
+  }
+  .bot-section-heading {
+    padding: 22px 20px;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .bot-section-heading h3 {
+    font-size: 22px;
+    line-height: 1.5;
+  }
+  .bot-section-heading .eyebrow {
+    font-size: 7px;
+  }
+  .bot-local-tag {
+    font-size: 8px;
+  }
+  .bot-builder {
+    padding: 23px 20px;
+    gap: 20px;
+  }
+  .bot-builder > label input {
+    font-size: 19px;
+    padding: 15px 13px;
+  }
+  .bot-builder .form-two {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
+  }
+  .bot-builder input {
+    font-size: 13px;
+  }
+  .bot-builder label {
+    font-size: 12px;
+  }
+  .bot-quick-presets button {
+    font-size: 10px;
+    padding: 9px 10px;
+  }
+  .bot-privacy {
+    padding: 15px 13px;
+    gap: 12px;
+  }
+  .bot-privacy b {
+    font-size: 11px;
+  }
+  .bot-privacy small {
+    font-size: 9px;
+  }
+  .bot-builder-actions button {
+    flex: 1;
+    font-size: 10px;
+    padding: 12px 10px;
+    gap: 6px;
+  }
+  .bot-builder-actions button svg {
+    width: 14px;
+    height: 14px;
+  }
+  .discord-preview {
+    padding: 0 17px 20px;
+  }
+  .discord-channel {
+    font-size: 11px;
+    gap: 7px;
+  }
+  .discord-channel small {
+    display: none;
+  }
+  .discord-preview-message {
+    gap: 10px;
+    padding: 22px 0 18px;
+  }
+  .discord-bot-avatar {
+    width: 29px;
+    height: 29px;
+  }
+  .discord-bot-avatar > svg {
+    width: 19px;
+    height: 19px;
+  }
+  .discord-bot-name {
+    font-size: 12px;
+  }
+  .discord-bot-name small {
+    font-size: 8px;
+    margin-left: 0;
+  }
+  .discord-result-embed {
+    padding: 17px 15px;
+  }
+  .preview-result-label {
+    font-size: 11px;
+  }
+  .preview-result-number {
+    font-size: 37px;
+  }
+  .discord-result-embed > code {
+    font-size: 11px;
+  }
+  .preview-dice-groups span {
+    min-width: 26px;
+    height: 26px;
+    font-size: 11px;
+  }
+  .preview-result-meta {
+    gap: 10px;
+  }
+  .preview-result-meta span {
+    font-size: 9px;
+  }
+  .preview-caption {
+    font-size: 8px;
+    line-height: 1.9;
+    align-items: flex-start;
+    gap: 7px;
+  }
+  .preview-caption i {
+    margin-top: 6px;
+  }
+  .bot-install .bot-section-heading {
+    padding: 23px 20px;
+  }
+  .bot-install .bot-section-heading h3 {
+    font-size: 23px;
+    line-height: 1.5;
+  }
+  .bot-service-state {
+    padding: 15px;
+    margin: 21px 19px 0;
+  }
+  .bot-service-state b {
+    font-size: 12px;
+  }
+  .bot-service-state p {
+    font-size: 10px;
+  }
+  .bot-install-steps {
+    padding: 0 19px;
+    margin: 26px 0;
+    gap: 28px;
+  }
+  .bot-install-steps > li {
+    gap: 12px;
+  }
+  .install-step-number {
+    width: 28px;
+    height: 28px;
+    font-size: 10px;
+  }
+  .bot-install-steps h4 {
+    font-size: 13px;
+    margin-bottom: 11px;
+  }
+  .bot-install-steps p {
+    font-size: 11px;
+  }
+  .bot-install-link {
+    font-size: 10px;
+    padding: 12px 10px;
+    gap: 5px;
+  }
+  .bot-install-link svg {
+    width: 13px;
+    height: 13px;
+  }
+  .bot-install-steps .auth-link {
+    font-size: 10px;
+  }
+  .bot-admin-setup summary {
+    font-size: 10px;
+    padding: 13px 12px;
+  }
+  .bot-admin-setup > p {
+    font-size: 10px;
+    padding: 0 12px;
+  }
+  .bot-admin-setup form {
+    padding: 0 12px 14px;
+  }
+  .bot-admin-setup label {
+    font-size: 10px;
+  }
+  .bot-admin-setup #token-note {
+    font-size: 9px;
+  }
+  .bot-admin-setup button {
+    font-size: 11px;
+    padding: 12px 9px;
+  }
+  .bot-portal-link {
+    font-size: 9px;
+  }
+  .bot-command-copy {
+    gap: 4px;
+    padding: 8px;
+  }
+  .bot-command-copy code {
+    font-size: 9px;
+  }
+  .bot-install .editor-notice,
+  .bot-install .error {
+    font-size: 11px;
+    margin: 15px 19px;
+  }
+  .bot-connection-details {
+    padding: 18px 19px 8px;
+  }
+  .bot-connection-details summary {
+    font-size: 11px;
+  }
+  .bot-connection-details input {
+    font-size: 10px;
+  }
+  .bot-command-guide {
+    margin-top: 23px;
+  }
+  .bot-command-guide .bot-section-heading {
+    padding: 23px 20px;
+  }
+  .bot-command-guide .bot-section-heading h3 {
+    font-size: 23px;
+  }
+  .bot-guide-label {
+    font-size: 8px;
+    white-space: normal;
+    line-height: 1.7;
+    overflow-wrap: anywhere;
+  }
+  .bot-example-grid {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 20px;
+    gap: 15px;
+  }
+  .bot-example-grid article {
+    padding: 23px;
+  }
+  .example-die {
+    margin-bottom: 17px;
+  }
+  .bot-example-grid h4 {
+    font-size: 17px;
+    margin-bottom: 15px;
+  }
+  .bot-example-grid article > code {
+    font-size: 16px;
+  }
+  .bot-example-grid p {
+    font-size: 12px;
+    margin: 18px 0 22px;
+  }
+  .bot-example-grid article > div > .quiet {
+    font-size: 11px;
+    padding: 8px 0;
+  }
+  .bot-example-grid article .icon-btn {
+    padding: 7px;
+    min-width: 30px;
+    min-height: 30px;
+  }
+  .bot-guide-options {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 25px 23px;
+    gap: 26px;
+  }
+  .bot-guide-options b {
+    font-size: 14px;
+  }
+  .bot-guide-options p {
+    font-size: 12px;
+  }
+  .bot-guide-options code {
+    font-size: 11px;
+  }
+  .bot-faq {
+    padding-top: 27px;
+    gap: 14px;
+  }
+  .bot-faq .eyebrow {
+    font-size: 7px;
+  }
+  .bot-faq h3 {
+    font-size: 24px;
+    line-height: 1.6;
+  }
+  .bot-faq summary {
+    font-size: 12px;
+  }
+  .bot-faq p {
+    font-size: 12px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .privacy-track i {
+    transition: none;
+  }
+}

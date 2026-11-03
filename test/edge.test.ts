@@ -157,7 +157,62 @@ test('Discord HTTP: assinaturas válidas, replay, ping e resposta privada', asyn
     ).json()) as any;
     assert.equal(result.type, 4);
     assert.equal(result.data.flags, 64);
-    assert.match(result.data.content, /1d6/);
+    assert.match(result.data.embeds[0].description, /1d6/);
+    assert.deepEqual(result.data.allowed_mentions, { parse: [] });
+    const help = (await (
+      await worker.fetch(
+        await signed({
+          type: 2,
+          application_id: env.DISCORD_CLIENT_ID,
+          data: { name: 'ajuda', options: [{ name: 'topico', value: 'expressoes' }] },
+        }),
+        env,
+      )
+    ).json()) as any;
+    assert.equal(help.data.flags, 64);
+    assert.match(help.data.embeds[0].title, /Expressões/);
+    const choices = (await (
+      await worker.fetch(
+        await signed({
+          type: 4,
+          application_id: env.DISCORD_CLIENT_ID,
+          data: {
+            name: 'rolar',
+            options: [{ name: 'expressao', value: 'vantagem', focused: true }],
+          },
+        }),
+        env,
+      )
+    ).json()) as any;
+    assert.equal(choices.type, 8);
+    assert(choices.data.choices.some((c: any) => c.value === '2d20kh1+5'));
+    const plain = (await (
+      await worker.fetch(
+        await signed({
+          type: 2,
+          app_permissions: '0',
+          data: {
+            name: 'rolar',
+            options: [
+              { name: 'expressao', value: '1d6' },
+              { name: 'alvo', value: 1 },
+            ],
+          },
+        }),
+        env,
+      )
+    ).json()) as any;
+    assert.equal(plain.data.embeds, undefined);
+    assert.match(plain.data.content, /Alvo 1/);
+    assert.deepEqual(plain.data.allowed_mentions, { parse: [] });
+    const invalid = (await (
+      await worker.fetch(
+        await signed({ type: 2, data: { name: 'rolar', options: { invalid: true } } }),
+        env,
+      )
+    ).json()) as any;
+    assert.equal(invalid.data.flags, 64);
+    assert.match(invalid.data.content, /expressão/);
     assert.equal(
       (await worker.fetch(await signed({ type: 2, application_id: 'wrong' }), env)).status,
       403,
@@ -208,12 +263,49 @@ test('ativação Discord exige login e usa o token só no serviço correto', asy
     assert.ok(text.includes('/api/discord/interactions'));
     assert.deepEqual(
       calls.map((c) => c.method),
-      ['GET', 'POST', 'PATCH'],
+      ['GET', 'POST', 'POST', 'PATCH'],
     );
     assert.equal(
       (await db.prepare('SELECT count(*) AS n FROM edge_campaigns').first<{ n: number }>())?.n,
       0,
     );
+  } finally {
+    db.close();
+  }
+});
+
+test('configuração pública expõe somente dados de conexão; erros do Discord não refletem tokens', async (t) => {
+  const db = sqliteD1();
+  const env: Env = {
+    DB: db,
+    DISCORD_CLIENT_ID: '123456789012345678',
+    DISCORD_PUBLIC_KEY: 'ab'.repeat(32),
+  };
+  try {
+    const response = await worker.fetch(request('/api/discord/config'), env);
+    const data = (await response.json()) as any;
+    assert.equal(data.serviceReady, true);
+    assert.deepEqual(data.commands, ['rolar', 'ajuda']);
+    assert(!JSON.stringify(data).includes(env.DISCORD_PUBLIC_KEY!));
+    assert.match(data.installUrl, /permissions=0/);
+    const missing = (await (
+      await worker.fetch(request('/api/discord/config'), { DB: db })
+    ).json()) as any;
+    assert.equal(missing.serviceReady, false);
+    assert.equal(missing.installUrl, null);
+    t.mock.method(
+      globalThis,
+      'fetch',
+      async () => new Response(JSON.stringify({ token: 'do-not-reflect' }), { status: 429 }),
+    );
+    const limited = await worker.fetch(
+      request('/api/discord/setup', 'owner', { botToken: 'do-not-reflect' }),
+      env,
+    );
+    assert.equal(limited.status, 429);
+    const message = await limited.text();
+    assert.match(message, /limitou/);
+    assert(!message.includes('do-not-reflect'));
   } finally {
     db.close();
   }

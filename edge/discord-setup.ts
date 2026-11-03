@@ -17,15 +17,38 @@ export async function setupDiscord(botToken: unknown, origin: string, env: Env) 
     throw new ApiError(503, 'A aplicação Discord ainda não foi configurada.');
   const headers = { authorization: `Bot ${botToken.trim()}`, 'content-type': 'application/json' };
   async function discord(path: string, init: RequestInit = {}) {
-    const r = await fetch(`https://discord.com/api/v10${path}`, {
-      ...init,
-      headers,
-      signal: AbortSignal.timeout(15_000),
-    });
-    if (!r.ok)
+    let r: Response;
+    try {
+      r = await fetch(`https://discord.com/api/v10${path}`, {
+        ...init,
+        headers,
+        signal: AbortSignal.timeout(15_000),
+      });
+    } catch {
+      throw new ApiError(
+        503,
+        'O Discord não respondeu à configuração. Tente novamente em alguns instantes.',
+      );
+    }
+    if (r.status === 401)
       throw new ApiError(
         400,
-        `O Discord recusou a configuração (HTTP ${r.status}). Confira o token e a aplicação no Developer Portal.`,
+        'O token foi recusado. Gere um novo token na aba Bot do Developer Portal e tente novamente.',
+      );
+    if (r.status === 403)
+      throw new ApiError(
+        403,
+        'A aplicação não permitiu esta atualização. Confira o token e as configurações no Developer Portal.',
+      );
+    if (r.status === 429)
+      throw new ApiError(
+        429,
+        'O Discord limitou as tentativas de configuração. Aguarde um pouco antes de tentar novamente.',
+      );
+    if (!r.ok)
+      throw new ApiError(
+        r.status >= 500 ? 503 : 400,
+        `O Discord recusou a configuração (HTTP ${r.status}). Confira a aplicação no Developer Portal.`,
       );
     return r.json() as Promise<any>;
   }
@@ -46,5 +69,20 @@ export async function setupDiscord(botToken: unknown, origin: string, env: Env) 
     method: 'PATCH',
     body: JSON.stringify({ interactions_endpoint_url: urls.interactionsEndpoint }),
   });
-  return { ok: true, ...urls };
+  return { ok: true, ...urls, registeredCommands: commandDefinitions.map((c) => c.name) };
+}
+
+export function discordConfig(origin: string, env: Env) {
+  const ready = Boolean(
+    env.DISCORD_CLIENT_ID &&
+    /^\d{17,22}$/.test(env.DISCORD_CLIENT_ID) &&
+    env.DISCORD_PUBLIC_KEY &&
+    /^[a-f0-9]{64}$/i.test(env.DISCORD_PUBLIC_KEY),
+  );
+  return {
+    ...discordUrls(origin, env.DISCORD_CLIENT_ID ?? ''),
+    serviceReady: ready,
+    installUrl: ready ? discordUrls(origin, env.DISCORD_CLIENT_ID!).installUrl : null,
+    commands: commandDefinitions.map((c) => c.name),
+  };
 }
