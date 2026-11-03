@@ -28,10 +28,12 @@ Use a branch `codex/review-and-pending-fixes` do repositório `CleverXSamas/infe
 | `HOST` | `::`, para aceitar a rede privada IPv6 e a conexão pública |
 | `DATABASE_URL` | Referência `${{MySQL.MYSQL_URL}}`; mantenha usuário e senha somente no cofre do Railway |
 | `PUBLIC_ORIGIN` | `https://${{RAILWAY_PUBLIC_DOMAIN}}`, após gerar o domínio do serviço |
-| `MANUS_PROJECT_ID` | ID real do projeto Manus usado para autenticação |
-| `MANUS_OAUTH_API_URL` | URL HTTPS oficial configurada nesse projeto |
-| `MANUS_OAUTH_PORTAL_URL` | URL HTTPS oficial do portal OAuth desse projeto |
+| `MANUS_PROJECT_ID` | `hQ96GtJS3byVQmgSaiY8PV`, informado pelo proprietário |
+| `MANUS_OAUTH_API_URL` | `https://api.manus.im`, API padrão do OAuth Manus; validar o login real após o deploy |
+| `MANUS_OAUTH_PORTAL_URL` | `https://manus.im`; o código acrescenta `/app-auth` |
 | `MANUS_JWT_SECRET` | Opcional, somente se o projeto exigir compatibilidade com JWT do Preview; copie o segredo original, sem substituí-lo por valor aleatório |
+
+O proprietário informou o portal `https://manus.im/app-auth`; configure apenas a origem na variável para evitar duplicar o caminho. A URL da API padrão foi identificada em configuração pública do SDK e ainda precisa ser confirmada pelo fluxo real deste projeto.
 
 Cadastre no provedor OAuth o callback exato `PUBLIC_ORIGIN/api/auth/callback`. Uma mudança de domínio exige atualizar o callback e a origem da aplicação.
 
@@ -73,4 +75,4 @@ Os comandos leem as variáveis do ambiente; não carregam `.env` automaticamente
 - O log do bot deve confirmar conexão ao Discord; execute `/rolar expressao:2d20kh1+5` no servidor em que foi instalado.
 - Verifique a resposta privada com a opção `privado`.
 
-A integração Railway permite concluir a criação, o deploy e a leitura de logs quando conectada. A criação da aplicação Discord, a emissão do token, a instalação no servidor e os dados OAuth do Manus exigem acesso às respectivas contas. Não há publicação confirmada até que o provedor retorne o deploy concluído e uma URL real.
+A integração Railway permite concluir a criação, o deploy e a leitura de logs quando conectada. A criação da aplicação Discord, a emissão do token, a instalação no servidor e a autorização do callback OAuth Manus exigem acesso às respectivas contas. Não há publicação confirmada até que o provedor retorne o deploy concluído e uma URL real.
