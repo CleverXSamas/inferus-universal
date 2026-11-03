@@ -76,7 +76,7 @@ A árvore visual demonstra geração e progressão, mas ainda não desconta uma 
 
 ## Hospedagem
 
-A versão gratuita adaptada está publicada em **https://inferus-universal.moltencrown1.chatgpt.site**. Consulte o [guia Cloudflare/Sites](docs/CLOUDFLARE.md) para login ChatGPT, D1, build e ativação do Discord por HTTP. A versão Node/MySQL mantém Manus e não é substituída.
+A versão gratuita adaptada está publicada em **https://inferus-universal.peneseretu.chatgpt.site**. Consulte o [guia Cloudflare/Sites](docs/CLOUDFLARE.md) para login ChatGPT, D1, build e ativação do Discord por HTTP. A versão Node/MySQL mantém Manus e não é substituída.
 
 
 O [guia de deploy no Railway](docs/DEPLOYMENT.md) descreve os serviços web, bot e MySQL, as referências privadas e o armazenamento dos segredos. Os arquivos `deploy/railway.web.toml` e `deploy/railway.bot.toml` configuram build, comandos de inicialização e reinício. Em produção, o servidor exige banco, origem HTTPS e OAuth configurados. `npm run bot:check` valida o token e a aplicação Discord sem registrar comandos.

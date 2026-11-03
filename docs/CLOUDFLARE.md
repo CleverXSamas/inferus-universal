@@ -1,6 +1,6 @@
 # Hospedagem Cloudflare Workers + D1
 
-Publicação: https://inferus-universal.moltencrown1.chatgpt.site
+Publicação: https://inferus-universal.peneseretu.chatgpt.site
 
 A versão Sites executa a interface React e uma API HTTP em um único Worker, com armazenamento D1 para campanhas, fichas, histórico e árvores da API. Não precisa de servidor Node nem processo contínuo de bot. A alternativa Node/MySQL continua disponível no mesmo repositório, inclusive os comandos de build e testes originais.
 
@@ -18,11 +18,11 @@ As alterações de campanha usam compare-and-swap com revisão no D1: uma opera�
 
 A aplicação Discord é `1528465674731782347`. A chave pública foi configurada no ambiente da hospedagem. O receptor valida assinatura Ed25519 e timestamp, responde a PING e atende `/rolar`, incluindo respostas privadas. Não precisa de token de bot em cada execução.
 
-Para ativar, abra https://inferus-universal.moltencrown1.chatgpt.site/discord, entre e informe um token novo da aplicação no formulário. A API verifica se o token pertence à aplicação e se a chave pública confere, cria ou atualiza apenas `/rolar` (preservando outros comandos) e configura a URL de interações no Discord. Em seguida, apresenta o link de instalação no servidor.
+Para ativar, abra https://inferus-universal.peneseretu.chatgpt.site/discord, entre e informe um token novo da aplicação no formulário. A API verifica se o token pertence à aplicação e se a chave pública confere, cria ou atualiza `/rolar` e `/ajuda` (preservando outros comandos) e configura a URL de interações no Discord. Em seguida, apresenta o link de instalação no servidor.
 
 O token é usado somente nas requisições HTTPS ao Discord, sem gravação em D1, arquivos, logs ou localStorage. O formulário apaga o valor após a tentativa. A configuração só ocorre depois do envio explícito do formulário; os testes usam um token fictício e não ativam a aplicação real.
 
-Endpoint de interações: `https://inferus-universal.moltencrown1.chatgpt.site/api/discord/interactions`.
+Endpoint de interações: `https://inferus-universal.peneseretu.chatgpt.site/api/discord/interactions`.
 
 ## Build e validação
 
@@ -57,3 +57,5 @@ O Cloudflare disponibiliza faixas gratuitas de Workers e D1 com cotas. Isso não
 ## Verificação da publicação
 
 A plataforma confirmou o deploy concluído, e o proprietário conferiu `/api/health`: `ok: true`, armazenamento D1 para campanhas/fichas/histórico/árvores, autenticação ChatGPT e transporte Discord HTTP. A ativação real do Discord depende do envio do token novo no formulário e da instalação no servidor.
+
+A tela `/discord` distingue configuração do serviço de confirmação de instalação. Após uma mudança de endereço público ou atualização do catálogo de comandos, use “Configurar ou atualizar comandos” para registrar novamente a versão e o endpoint atual. Consulte [o guia do bot](DISCORD.md) para autocomplete, motivo, privacidade, mensagens e referências de UX.
