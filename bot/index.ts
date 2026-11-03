@@ -1,15 +1,28 @@
 import { Client, GatewayIntentBits, MessageFlags, REST, Routes } from 'discord.js';
 import { commandDefinitions, handleInteraction } from './discord-adapter.js';
+import { validateDiscordCredentials } from './credentials.js';
+import { assertRuntimeConfiguration } from '../server/config.js';
 function env(key: string) {
   const value = process.env[key];
   if (!value) throw new Error(`${key} não configurado.`);
   return value;
 }
 async function main() {
-  const token = env('DISCORD_TOKEN');
-  if (process.argv.includes('--register')) {
-    const clientId = env('DISCORD_CLIENT_ID'),
-      rest = new REST({ version: '10' }).setToken(token),
+  if (
+    process.env.NODE_ENV === 'production' &&
+    !process.argv.includes('--check') &&
+    !process.argv.includes('--register')
+  )
+    assertRuntimeConfiguration('bot');
+  const token = env('DISCORD_TOKEN'),
+    clientId = env('DISCORD_CLIENT_ID');
+  await validateDiscordCredentials(token, clientId);
+  if (process.argv.includes('--check')) {
+    console.log(`Credenciais Discord validadas para a aplicação ${clientId}.`);
+    return;
+  }
+  if (process.argv.includes('--register') || process.env.DISCORD_REGISTER_COMMANDS === '1') {
+    const rest = new REST({ version: '10' }).setToken(token),
       guild = process.env.DISCORD_GUILD_ID;
     await rest.put(
       guild
@@ -21,7 +34,7 @@ async function main() {
     console.log(
       `Instalação: https://discord.com/oauth2/authorize?client_id=${encodeURIComponent(clientId)}&scope=bot%20applications.commands&permissions=0`,
     );
-    return;
+    if (process.argv.includes('--register')) return;
   }
   const client = new Client({ intents: [GatewayIntentBits.Guilds] });
   client.once('clientReady', () => console.log('Inferus Discord conectado.'));

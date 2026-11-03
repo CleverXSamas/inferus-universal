@@ -17,7 +17,8 @@
 - [x] Corrigir filtros de preset e a demonstração da skill tree: seleção inicial, estados bloqueado/disponível, layout radial estável e geração sem nós órfãos.
 - [x] Associar campanhas e fichas ao `openId` autenticado e permitir gestão de membros por conta, além do convite privado.
 - [x] Implementar runtime Discord, registro de `/rolar`, URL OAuth2 de instalação, opções e tratamento de resposta adiada.
-- [ ] Configurar token/client ID Discord, instalar o bot e hospedar o processo com uma API alcançável (requer configuração externa).
+- [x] Preparar imagem de produção, configurações Railway para web/bot, validação de ambiente e conferência token–Application ID Discord.
+- [ ] Conectar a conta Railway, configurar os segredos externos, identificar o projeto Manus, instalar o bot e confirmar o deploy público. Application ID Discord informado: `1528465674731782347`.
 - [x] Adicionar funções `floor`, `ceil`, `min`, `max` e `abs` ao parser de fórmulas.
 - [x] Rodar suíte estatística de 10^6 amostras em job separado de CI.
 

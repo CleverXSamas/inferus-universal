@@ -14,7 +14,8 @@
     "bot:register": "tsx bot/index.ts --register",
     "start:bot": "node dist-server/bot/index.js",
     "test:browser": "playwright test",
-    "format": "prettier --write \"{server,packages,src,bot,test}/**/*.{ts,tsx}\" playwright.config.ts"
+    "format": "prettier --write \"{server,packages,src,bot,test}/**/*.{ts,tsx}\" playwright.config.ts",
+    "bot:check": "tsx bot/index.ts --check"
   },
   "dependencies": {
     "@vitejs/plugin-react": "latest",

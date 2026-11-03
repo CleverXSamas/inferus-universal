@@ -269,3 +269,9 @@ export function publicUser(user: User | null) {
 export async function closeAuthStore() {
   await pool?.end();
 }
+
+export async function databaseHealth() {
+  if (!pool) return;
+  await ready();
+  await pool.query('SELECT 1');
+}

@@ -43,3 +43,11 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run test:statistics
+
+  container:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t inferus-ci .
+      - run: docker run --rm --network none --mount "type=bind,src=$PWD/test/container-smoke.mjs,dst=/tmp/container-smoke.mjs,readonly" --entrypoint node inferus-ci /tmp/container-smoke.mjs

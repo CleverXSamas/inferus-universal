@@ -11,6 +11,7 @@ import {
 } from '../packages/tree-core/index.js';
 import { createCampaignStore, type CampaignStatus } from './campaigns.js';
 import { createSheetStore } from './sheets.js';
+import { assertRuntimeConfiguration } from './config.js';
 import {
   begin,
   callback,
@@ -19,6 +20,7 @@ import {
   logout,
   publicUser,
   storageKind,
+  databaseHealth,
 } from './auth.js';
 class HttpError extends Error {
   constructor(
@@ -70,12 +72,18 @@ export function createApplication(options: { databaseUrl?: string } = {}) {
         if (req.headers.origin !== expected)
           throw new HttpError(403, 'Origem da requisição inválida.');
       }
-      if (url.pathname === '/api/health' && req.method === 'GET')
+      if (url.pathname === '/api/health' && req.method === 'GET') {
+        try {
+          await databaseHealth();
+        } catch {
+          throw new HttpError(503, 'Banco de dados indisponível.');
+        }
         return json(res, 200, {
           ok: true,
           campaignStorage: campaigns.kind,
           authStorage: storageKind(),
         });
+      }
       if (url.pathname === '/api/presets' && req.method === 'GET') return json(res, 200, PRESETS);
       if (url.pathname === '/api/auth/login' && req.method === 'GET') return await begin(req, res);
       if (url.pathname === '/api/auth/callback' && req.method === 'GET') {
@@ -225,7 +233,10 @@ export function createApplication(options: { databaseUrl?: string } = {}) {
   };
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
+  if (process.env.NODE_ENV === 'production') assertRuntimeConfiguration('web');
   const app = createApplication(),
     port = Number(process.env.PORT ?? 3000);
-  app.server.listen(port, '0.0.0.0', () => console.log(`Inferus ouvindo em ${port}`));
+  app.server.listen(port, process.env.HOST || '0.0.0.0', () =>
+    console.log(`Inferus ouvindo em ${port}`),
+  );
 }

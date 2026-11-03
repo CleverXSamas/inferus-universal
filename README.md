@@ -73,3 +73,7 @@ O CI possui um job com MySQL e fluxos de navegador e outro job estatístico sepa
 Os seis presets de RPG são sínteses originais, editáveis e não oficiais. As fontes ficam disponíveis no seletor de fichas. O som é sintetizado localmente via Web Audio API.
 
 A árvore visual demonstra geração e progressão, mas ainda não desconta uma moeda nem aplica os efeitos na ficha. A interface informa efeitos desbloqueados. A integração completa árvore–ficha e comandos Discord de ficha estão no backlog.
+
+## Hospedagem
+
+O [guia de deploy no Railway](docs/DEPLOYMENT.md) descreve os serviços web, bot e MySQL, as referências privadas e o armazenamento dos segredos. Os arquivos `deploy/railway.web.toml` e `deploy/railway.bot.toml` configuram build, comandos de inicialização e reinício. Em produção, o servidor exige banco, origem HTTPS e OAuth configurados. `npm run bot:check` valida o token e a aplicação Discord sem registrar comandos.

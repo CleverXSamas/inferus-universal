@@ -1,7 +1,13 @@
 import assert from 'node:assert/strict';
 import { createHmac } from 'node:crypto';
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { callback, currentUser, logout, closeAuthStore } from '../../server/auth.js';
+import {
+  callback,
+  currentUser,
+  logout,
+  closeAuthStore,
+  databaseHealth,
+} from '../../server/auth.js';
 const req = (cookie: string) =>
   ({
     headers: { cookie, host: 'localhost', 'x-forwarded-proto': 'http' },
@@ -35,6 +41,7 @@ try {
   const cookie = (headers['set-cookie'] as string[])
     .find((c) => c.startsWith('webdev_app_session='))!
     .split(';')[0];
+  await databaseHealth();
   const user = await currentUser(req(cookie));
   assert.equal(user?.openId, 'auth-test-person');
   assert.match(user!.id, /^usr_/);

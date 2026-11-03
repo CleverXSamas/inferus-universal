@@ -1,5 +1,11 @@
 # Changelog
 
+## Não publicado — hospedagem
+- Docker multi-stage com dependências de build, imagem final sem usuário root e sem arquivos de ambiente.
+- Configuração Railway para aplicação web e processo Discord separados, com referência privada ao MySQL e à API.
+- Validação da configuração de produção, conferência token–aplicação Discord e registro opcional ao iniciar.
+- Guia de deploy e configuração do Application ID público informado; segredos permanecem externos.
+
 ## 1.4.0 — 2026-11-02
 - Corrigida escalada de privilégios por nome de participante; convites nunca recuperam o papel de DM.
 - Campanhas vinculadas à conta, retomada em outros dispositivos, migração de participação com a sessão original e remoção de membros.
