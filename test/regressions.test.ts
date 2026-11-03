@@ -129,3 +129,26 @@ test('árvores rejeitam IDs duplicados, centro ausente, níveis e custos inváli
   p.nodes[0].name = 'alterado';
   assert.notEqual(defaultPool().nodes[0].name, 'alterado');
 });
+
+test('ações resolvem referências positivas e negativas sem liberar operadores malformados', async () => {
+  const { resolveActionExpression } = await import('../packages/sheet-engine/index.ts');
+  assert.equal(resolveActionExpression('1d20 + @mod', { mod: -2 }), '1d20-2');
+  assert.equal(resolveActionExpression('1d20 - @mod', { mod: -2 }), '1d20+2');
+  assert.equal(resolveActionExpression('1d20 - @mod', { mod: 2 }), '1d20-2');
+  assert.equal(resolveActionExpression('1d20 + +@mod', { mod: 2 }), '1d20++2');
+  assert.throws(() => resolveActionExpression('1d20+@missing', {}));
+  assert.throws(() => resolveActionExpression('1d20+@mod', { mod: NaN }));
+  assert.throws(() =>
+    validateSheet({
+      id: 'ficha',
+      name: 'Teste',
+      sections: [
+        {
+          id: 's',
+          label: 'Ações',
+          fields: [{ id: 'a', label: 'Ação', type: 'action', expression: {} as string }],
+        },
+      ],
+    }),
+  );
+});

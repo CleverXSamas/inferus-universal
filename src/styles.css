@@ -585,7 +585,7 @@ main {
   background: #382941;
   border-color: #85609b;
 }
-.target {
+.roller-card .target {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -595,19 +595,19 @@ main {
   border-top: 1px solid #322a3c;
   border-bottom: 1px solid #322a3c;
 }
-.target label {
+.roller-card .target label {
   flex-direction: row;
   align-items: center;
   font-size: 10px;
   color: #a99db7;
 }
-.target input {
+.roller-card .target input {
   width: 55px;
   padding: 6px 8px;
   font-size: 11px;
   text-align: center;
 }
-.target .hint {
+.roller-card .target .hint {
   margin-left: auto;
   font-size: 9px;
   color: #95869f;
@@ -1808,7 +1808,7 @@ footer a {
     width: 100%;
     margin-bottom: 3px;
   }
-  .target .hint {
+  .roller-card .target .hint {
     margin-left: 0;
   }
   .preset-grid {
@@ -2079,12 +2079,12 @@ footer a {
     justify-content: center;
     padding: 6px 4px;
   }
-  .target {
+  .roller-card .target {
     margin: 19px 0;
     gap: 10px;
     padding: 15px 0;
   }
-  .target .hint {
+  .roller-card .target .hint {
     font-size: 9px;
   }
   .preset-label {

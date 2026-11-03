@@ -53,6 +53,11 @@ export function validateSheet(sheet: Sheet) {
       if (f.formula !== undefined && (typeof f.formula !== 'string' || f.formula.length > 200))
         throw new Error(`Fórmula inválida: ${f.id}`);
       if (
+        f.expression !== undefined &&
+        (typeof f.expression !== 'string' || f.expression.length > 200)
+      )
+        throw new Error(`Expressão inválida: ${f.id}`);
+      if (
         [f.min, f.max].some((v) => v !== undefined && !Number.isFinite(v)) ||
         (f.min !== undefined && f.max !== undefined && f.min > f.max)
       )
@@ -233,3 +238,18 @@ export const sampleSheet: Sheet = {
     },
   ],
 };
+
+// Resolve numeric references without evaluating JavaScript or accepting broken dice operators.
+export function resolveActionExpression(
+  expression: string,
+  values: Record<string, number>,
+): string {
+  return expression
+    .replace(/\s+/g, '')
+    .replace(/([+-]?)@([a-z][a-z0-9_]*)/g, (_, sign: string, ref: string) => {
+      if (!Object.hasOwn(values, ref) || !Number.isSafeInteger(values[ref]))
+        throw new Error(`A referência @${ref} deve ser um número inteiro válido.`);
+      const value = sign === '-' ? -values[ref] : values[ref];
+      return sign ? (value >= 0 ? `+${value}` : String(value)) : String(value);
+    });
+}
