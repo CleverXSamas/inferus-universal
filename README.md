@@ -1,40 +1,75 @@
 # Inferus Universal
 
-Inferus Universal é uma ferramenta local-first para mesa de campanha: rolador auditável, fichas personalizáveis, skill trees radiais, sala de campanha privada e contas persistentes para usar a mesa em diferentes dispositivos.
+Ferramenta local-first para mesa de campanha: rolador auditável, fichas personalizáveis, skill trees radiais, campanhas privadas e contas Manus OAuth.
 
-## Rodar
+## Executar
+
+Requer Node.js 22.18 ou superior.
 
 ```bash
-npm install
+npm ci
+npm run build
 npm run dev
 ```
 
-O servidor escuta em `http://localhost:3000`. `npm run build` produz o frontend em `dist/` e o servidor compilado em `dist-server/`. `npm run check` e `npm test` validam o núcleo.
+Abra `http://localhost:3000`. O frontend é servido de `dist/`; o servidor compilado fica em `dist-server/`. Em produção, use `npm start`. O comando de desenvolvimento executa o servidor TypeScript; refaça o build para atualizar o frontend.
 
-## Conta, login e cadastro
+As variáveis estão em `.env.example`. Configure-as no ambiente do processo ou use `node --env-file=.env dist-server/server/index.js`; os scripts não carregam `.env` automaticamente.
 
-A aba superior oferece **Entrar / criar conta**. O botão usa Manus OAuth: quem já tem uma conta entra e quem ainda não tem pode criar uma conta no fluxo do provedor. Não há senha local nem senha armazenada pelo Inferus.
+## Contas e fichas
 
-Depois do retorno OAuth, o servidor registra ou atualiza o usuário no MySQL e cria uma sessão persistente de 30 dias. O cookie `webdev_app_session` é HttpOnly, Secure e `SameSite=None`, permitindo uso no Preview incorporado e no site publicado. A sessão não depende de `localStorage`, portanto o mesmo usuário pode entrar em outro dispositivo. Sair revoga a sessão atual.
+**Entrar / criar conta** inicia Manus OAuth. O Inferus não recebe nem armazena senhas. Configure `MANUS_PROJECT_ID`, `MANUS_OAUTH_API_URL`, `MANUS_OAUTH_PORTAL_URL` e a origem pública fixa em `PUBLIC_ORIGIN`. `MANUS_JWT_SECRET` é necessário apenas para aceitar sessões JWT assinadas do Preview; tokens precisam de HS256, expiração e `appId` correspondente ao projeto.
 
-O fluxo protege o callback com nonce de uso único em cookie curto, compara o `redirectUri` fixo da aplicação, troca o código no servidor e consulta a identidade no provedor. A API não aceita um `redirectUri` arbitrário vindo do navegador.
+A sessão própria tem 30 dias e usa token aleatório, armazenado apenas por hash. O cookie é HttpOnly, Secure e `SameSite=None` em HTTPS encaminhado pelo proxy; no desenvolvimento HTTP usa `SameSite=Lax`. O logout é POST e revoga a sessão própria atual. O proxy de produção deve sobrescrever os cabeçalhos encaminhados de protocolo e host.
 
-Sem `DATABASE_URL`, o modo de desenvolvimento usa memória e não oferece sobrevivência entre processos. O health endpoint informa `authStorage: memory` ou `authStorage: mysql`. No projeto gerenciado atual, o banco está habilitado.
+Fichas podem ser editadas, ampliadas e salvas localmente. **Salvar na conta** grava uma cópia privada associada ao `openId` autenticado. Em outro dispositivo, faça login e selecione a ficha em **Fichas da conta**. A sincronização é explícita: o salvamento mais recente substitui a cópia da conta. A cópia local continua no navegador após logout ou remoção da cópia da conta.
 
-## Campanha
+Fórmulas aceitam `@referencia`, `+`, `-`, `*`, `×`, `/`, parênteses e `floor`, `ceil`, `min`, `max`, `abs`. Dependências são resolvidas independentemente da ordem dos campos; ciclos, referências inválidas e divisão por zero geram erro. Não há execução de JavaScript.
 
-Abra a aba Campanha para criar uma mesa. O DM informa o nome da campanha e seu nome de mesa; a aplicação gera um convite privado com token aleatório. O DM pode copiar ou revogar esse convite, ver os participantes, iniciar/pausar a sessão e publicar no diário. Jogadores entram pelo link, escolhem um nome e veem a sala. O limite é rígido: 10 participantes no total, sendo 1 DM e até 9 jogadores.
+## Campanhas
 
-A sala atualiza por polling cancelável a cada cinco segundos. O servidor verifica o token, o papel e o limite; esconder o botão de DM no navegador não é a única proteção. Mensagens têm limite de 500 caracteres e nomes de 60 caracteres.
+Uma mesa aceita 1 DM e até 9 jogadores. Criação e entrada autenticadas vinculam a participação ao `openId`; **Minhas campanhas** permite retomá-la em outro dispositivo. O DM pode iniciar/pausar a sessão, remover jogadores, revogar e gerar novos convites. Mensagens têm até 500 caracteres e nomes de mesa até 60.
 
-Quando `DATABASE_URL` está configurado, as tabelas `inferus_campaigns`, `inferus_campaign_participants`, `inferus_campaign_sessions`, `inferus_campaign_events`, `inferus_users` e `inferus_auth_sessions` são criadas de forma idempotente.
+O convite permite criar uma participação de jogador, sem conceder o papel do DM. Um nome já utilizado exige outra escolha; nomes não recuperam identidade nem privilégios. Sem conta, preserve a sessão do navegador. Para vincular uma participação antiga, entre na conta no navegador que possui a sessão original e use **Vincular participação à conta**. Uma sessão vinculada exige aquela conta; não pode ser revendicada com outra conta ou apenas com o nome.
 
-## Núcleo aberto
+Revogar ou substituir o convite bloqueia novas entradas pelo link antigo e mantém o acesso dos membros existentes. Remover um jogador invalida suas sessões e sua participação na conta; se ele ainda tiver um convite válido, poderá pedir nova entrada como jogador. O DM pode revogar o convite para impedir isso.
 
-Presets de pool de dados, atributos contidos, escada narrativa, ação com posição/efeito, d20 e traços são pontos de partida editáveis e não oficiais. Fichas aceitam novas seções e árvores começam no centro, expandindo conforme as compras e aceitando skills próprias.
+A sala usa polling a cada cinco segundos, com cancelamento da requisição ao sair e sem sobreposição entre polls. As permissões e o limite são verificados no servidor. No MySQL, a verificação de capacidade e a entrada ocorrem sob bloqueio transacional da campanha.
 
-As rolagens usam fonte criptográfica, mantêm auditoria e têm som opcional local via Web Audio API. Nenhum áudio é enviado a um provedor externo.
+## Persistência
 
-## Limites conhecidos
+Com `DATABASE_URL`, usuários, sessões, campanhas, participantes, vínculos de conta, eventos e fichas são persistidos em MySQL. As tabelas são criadas de forma idempotente. Os vínculos novos usam tabelas adicionais, preservando campanhas anteriores. `GET /api/health` informa `campaignStorage` e `authStorage`.
 
-O adaptador Discord ainda precisa de token, OAuth e URL pública. O parser de fórmulas ainda precisa de `floor`, `ceil`, `min`, `max` e `abs`; a suíte estatística de 10^6 amostras ainda é um job separado de CI.
+Sem banco, o modo memória serve para desenvolvimento e perde dados ao reiniciar. Histórico de rolagens e árvores da API também ficam em memória; a demonstração de árvore permanece local. Fichas e histórico locais usam o armazenamento do navegador.
+
+## Discord
+
+O bot inclui o comando funcional `/rolar`, com expressão obrigatória, alvo opcional e resposta privada opcional. Usa a API de dados da mesma aplicação e não requer o intent de conteúdo de mensagens.
+
+1. Crie uma aplicação/bot no Discord Developer Portal.
+2. Configure `DISCORD_TOKEN`, `DISCORD_CLIENT_ID` e `FRAGMENTOS_API_URL` no ambiente. A API precisa ser alcançável pelo processo do bot; use HTTPS ao atravessar a internet.
+3. Opcionalmente configure `DISCORD_GUILD_ID` para registrar o comando apenas em um servidor de teste.
+4. Execute `npm run bot:register` e abra a URL OAuth2 de instalação emitida.
+5. Execute `npm run bot`, ou `npm run build` seguido de `npm run start:bot`.
+
+Token, instalação no Discord, URL pública e hospedagem do processo continuam dependendo da configuração externa. Nenhuma credencial é incluída no repositório. Comandos de ficha só devem ser publicados após implementar o vínculo explícito entre conta Discord e conta Manus; os placeholders anteriores foram removidos do registro.
+
+## Validação
+
+```bash
+npm run check
+npm test
+npm run test:statistics
+npx playwright install chromium
+npm run test:browser
+```
+
+`npm test` verifica tipos e executa testes de núcleo, permissões, HTTP, OAuth e Discord. Para incluir persistência MySQL e concorrência, configure `TEST_DATABASE_URL` apontando a um **banco descartável**. Esses testes criam registros no banco indicado.
+
+O CI possui um job com MySQL e fluxos de navegador e outro job estatístico separado, com 1.000.000 amostras por dado (d6 e d20). A tolerância estatística de sete desvios padrão é um detector de viés, não uma prova de aleatoriedade. As faces usam fonte criptográfica com rejeição para evitar viés de módulo.
+
+## Presets e limites
+
+Os seis presets de RPG são sínteses originais, editáveis e não oficiais. As fontes ficam disponíveis no seletor de fichas. O som é sintetizado localmente via Web Audio API.
+
+A árvore visual demonstra geração e progressão, mas ainda não desconta uma moeda nem aplica os efeitos na ficha. A interface informa efeitos desbloqueados. A integração completa árvore–ficha e comandos Discord de ficha estão no backlog.

@@ -4,3 +4,6 @@ dist-server
 .env
 .env.*
 !.env.example
+work/
+playwright-report/
+test-results/

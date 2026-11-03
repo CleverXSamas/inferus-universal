@@ -1,0 +1,6 @@
+{
+  "extends":"./tsconfig.server.json",
+  "compilerOptions":{"outDir":"work/test-build","rewriteRelativeImportExtensions":true},
+  "include":["server","packages","bot","test"],
+  "exclude":["test/statistical","test/browser"]
+}

@@ -15,10 +15,17 @@
 - [x] Atualizar a sala por polling cancelável, limitar nome/mensagem e evitar token em listagens.
 - [x] Login/cadastro com Manus OAuth, nonce de callback, sessão HttpOnly de 30 dias, tabelas MySQL de usuários e sessões e suporte a login em outros dispositivos.
 - [x] Corrigir filtros de preset e a demonstração da skill tree: seleção inicial, estados bloqueado/disponível, layout radial estável e geração sem nós órfãos.
-- [ ] Associar campanhas e fichas ao `openId` autenticado e permitir gestão de membros por conta, além do convite privado.
-- [ ] Token Discord, OAuth2, URL pública e publicação do bot.
-- [ ] Adicionar funções `floor`, `ceil`, `min`, `max` e `abs` ao parser de fórmulas.
-- [ ] Rodar suíte estatística de 10^6 amostras em job separado de CI.
+- [x] Associar campanhas e fichas ao `openId` autenticado e permitir gestão de membros por conta, além do convite privado.
+- [x] Implementar runtime Discord, registro de `/rolar`, URL OAuth2 de instalação, opções e tratamento de resposta adiada.
+- [ ] Configurar token/client ID Discord, instalar o bot e hospedar o processo com uma API alcançável (requer configuração externa).
+- [x] Adicionar funções `floor`, `ceil`, `min`, `max` e `abs` ao parser de fórmulas.
+- [x] Rodar suíte estatística de 10^6 amostras em job separado de CI.
+
+## Pendências identificadas na revisão
+
+- [ ] Integrar custo/moeda e efeitos de árvore à ficha; a demonstração atual apenas desbloqueia nós.
+- [ ] Vincular explicitamente contas Discord a contas Manus antes de oferecer comandos privados de ficha.
+- [ ] Persistir histórico e árvores da API; hoje permanecem em memória.
 
 ## Princípio de extensibilidade
 

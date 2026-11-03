@@ -16,3 +16,9 @@
 - 2026-11-02: o callback OAuth exige nonce em cookie curto, `redirectUri` fixo e troca de código no servidor. O fluxo aceita também JWT HS256 válido fornecido pelo Preview, validando assinatura, expiração e `appId`.
 - 2026-11-02: auditoria encontrou filtros sem abas para os modos `narrative` e `traits`; ambos foram adicionados, em vez de remover os presets.
 - 2026-11-02: geração de árvore usa expansão por fronteira a partir de `centro`. Isso impede que o sorteio mostre uma skill cujo pré-requisito não esteja presente e evita um bloqueio permanente.
+
+- 2026-11-02: nomes de mesa são apenas apresentação. Participações antigas só são vinculadas à conta mediante prova da sessão original; participações vinculadas exigem o `openId` autenticado.
+- 2026-11-02: revogar convite afeta novas entradas, e não membros existentes. A remoção de membro invalida sessões e vínculo. As mutações MySQL bloqueiam a linha da campanha para serializar capacidade e permissões.
+- 2026-11-02: fichas mantêm cópia local e sincronização explícita na conta. O salvamento mais recente substitui o documento remoto; não há mescla automática concorrente.
+- 2026-11-02: custos e efeitos de árvore ainda não são aplicados na ficha; a interface deixa de afirmar que esses efeitos já foram aplicados.
+- 2026-11-02: apenas /rolar é registrado no Discord. Comandos de ficha aguardam vínculo explícito Discord–Manus; configuração de credenciais e publicação são etapas externas.
