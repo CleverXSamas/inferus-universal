@@ -144,8 +144,10 @@ test('personagem: módulos, fórmula, recurso, ação, modo jogo e recuperação
 
   await page.getByRole('button', { name: 'Modo jogo', exact: true }).click();
   await page.getByRole('button', { name: 'Rolar Ataque', exact: true }).click();
-  await expect(page.locator('.editor-notice')).toContainText('Ataque:');
-  await expect(page.locator('.editor-notice')).toContainText('1d20-1');
+  await expect(page.getByRole('region', { name: 'Rolagem da ficha' })).toBeInViewport();
+  await expect(page.getByRole('status', { name: 'Resultado da rolagem' })).toContainText('Ataque:');
+  await expect(page.getByRole('status', { name: 'Resultado da rolagem' })).toContainText('1d20-1');
+  await page.getByRole('button', { name: 'Fechar rolagem', exact: true }).click();
   await expect(page.getByRole('button', { name: /Remover campo/ })).toHaveCount(0);
   await page.getByRole('button', { name: 'Montar ficha', exact: true }).click();
   await page.getByRole('button', { name: 'Remover seção Vitalidade', exact: true }).click();

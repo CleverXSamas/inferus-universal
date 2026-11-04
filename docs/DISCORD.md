@@ -16,7 +16,7 @@ Não foram reutilizados código, marcas ou imagens desses bots.
 - `/rolar expressao:1d20+5`: expressão livre ou sugestão do menu. Parâmetros opcionais: `alvo` (inteiro de -50 a 1000), `privado` (padrão falso) e `motivo` (até 80 caracteres).
 - `/ajuda`: primeiros passos; `topico:expressoes` mostra exemplos; `topico:privacidade` explica visibilidade, limites e o que a integração oferece. A ajuda é sempre privada.
 
-As respostas destacam total, motivo, expressão, dados mantidos/descartados, explosões, modificador e comparação com o alvo. Mensagens extensas abreviam a auditoria de forma explícita e respeitam os limites do Discord. O ID da rolagem permanece no rodapé. A auditoria exibida não implica armazenamento de uma auditoria completa no site.
+As respostas destacam total, motivo, expressão, dados mantidos/descartados, explosões, modificador e comparação com o alvo. Mensagens extensas abreviam a auditoria de forma explícita e respeitam os limites do Discord. O cartão usa motivo, total em destaque, expressão, dados, modificador e legenda, nessa ordem. O rodapé prioriza a legenda do print de referência. A auditoria exibida não implica armazenamento de uma auditoria completa no site.
 
 Quando o canal não permite embeds, o resultado é apresentado como texto, priorizando total, alvo e modificador. Menções são desativadas nos dois transportes e o texto livre do motivo é escapado.
 
@@ -49,3 +49,11 @@ Fichas e árvores continuam no site; esta revisão não cria vínculo automátic
 ## Validação
 
 Os testes cobrem exemplos, autocomplete, opções inválidas, formatos rico/texto, limites de mensagem, motivos com menções, ajuda privada, defer/edição de respostas, assinaturas HTTP, configuração pública, autorização de ativação, rate limiting, limpeza do token e prévia sem chamadas de envio.
+
+## Cartão alinhado à prévia
+
+Rolagens passam a usar Components V2: Container com faixa violeta, Text Display e Separator. O modelo `rollCardModel` é compartilhado entre a prévia web, o painel flutuante da ficha e a resposta do bot. A resposta nativa usa IS_COMPONENTS_V2 (32768), preserva o bit efêmero e não mistura os campos content/embeds com o container. A versão Node aplica a flag na edição da resposta diferida.
+
+O layout segue a referência enviada: motivo antes do total, expressão destacada, grupos com dados mantidos/descartados, divisores, modificador e legenda. Ao exceder os limites de leitura, os dois ambientes usam a mesma abreviação explícita. A fonte, o tamanho exato dos textos, os fundos e as bordas dos códigos são controlados pelo cliente Discord; CSS do site não é enviado para ele. Consulte [a referência oficial de componentes](https://docs.discord.com/developers/components/reference).
+
+Esta atualização muda o formato de novas respostas; não requer novo registro dos comandos quando o endpoint já aponta para esta aplicação publicada. Mensagens antigas não são reescritas.

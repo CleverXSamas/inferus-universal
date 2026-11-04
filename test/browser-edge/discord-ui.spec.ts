@@ -18,7 +18,7 @@ test('Discord: prévia local, privacidade, alvo e exemplos orientam sem enviar m
   await page.getByRole('switch').click();
   await expect(page.getByRole('switch')).toHaveAttribute('aria-checked', 'true');
   await page.getByRole('button', { name: 'Testar prévia', exact: true }).click();
-  await expect(page.locator('.preview-result-meta')).toContainText('Passou');
+  await expect(page.locator('.roll-card-meta')).toContainText('Passou');
   await page.getByRole('button', { name: 'Copiar /rolar', exact: true }).click();
   const command = await page.evaluate(() => navigator.clipboard.readText());
   expect(command).toContain('expressao:1d6+5');

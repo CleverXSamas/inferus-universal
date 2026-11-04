@@ -156,8 +156,11 @@ test('Discord HTTP: assinaturas válidas, replay, ping e resposta privada', asyn
       )
     ).json()) as any;
     assert.equal(result.type, 4);
-    assert.equal(result.data.flags, 64);
-    assert.match(result.data.embeds[0].description, /1d6/);
+    assert.equal(result.data.flags, 32768 | 64);
+    assert.equal(result.data.components[0].type, 17);
+    assert.match(JSON.stringify(result.data.components), /1d6/);
+    assert.equal(result.data.content, undefined);
+    assert.equal(result.data.embeds, undefined);
     assert.deepEqual(result.data.allowed_mentions, { parse: [] });
     const help = (await (
       await worker.fetch(

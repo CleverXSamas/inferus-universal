@@ -68,13 +68,22 @@ async function main() {
         topico: interaction.options.getString('topico') ?? undefined,
       },
       reply: async (body) => {
-        await interaction.reply({
-          content: body.content,
-          embeds: body.embeds,
-          components: body.components,
-          flags: body.ephemeral ? MessageFlags.Ephemeral : undefined,
-          allowedMentions: { parse: [] },
-        });
+        if (body.flags === 32768)
+          await interaction.reply({
+            components: body.components,
+            flags: body.ephemeral
+              ? [MessageFlags.IsComponentsV2, MessageFlags.Ephemeral]
+              : MessageFlags.IsComponentsV2,
+            allowedMentions: { parse: [] },
+          });
+        else
+          await interaction.reply({
+            content: body.content,
+            embeds: body.embeds,
+            components: body.components,
+            flags: body.ephemeral ? MessageFlags.Ephemeral : undefined,
+            allowedMentions: { parse: [] },
+          });
       },
       deferReply: async (opts) => {
         await interaction.deferReply({
@@ -82,12 +91,19 @@ async function main() {
         });
       },
       editReply: async (body) => {
-        await interaction.editReply({
-          content: body.content,
-          embeds: body.embeds,
-          components: body.components,
-          allowedMentions: { parse: [] },
-        });
+        if (body.flags === 32768)
+          await interaction.editReply({
+            components: body.components,
+            flags: MessageFlags.IsComponentsV2,
+            allowedMentions: { parse: [] },
+          });
+        else
+          await interaction.editReply({
+            content: body.content,
+            embeds: body.embeds,
+            components: body.components,
+            allowedMentions: { parse: [] },
+          });
       },
     }).catch(() => console.error('Falha ao responder à interação Discord.'));
   });

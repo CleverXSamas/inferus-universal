@@ -57,11 +57,73 @@ export type DiscordEmbed = {
   footer?: { text: string };
   timestamp?: string;
 };
-export type DiscordMessage = {
-  content: string;
-  embeds?: DiscordEmbed[];
-  components?: { type: 1; components: { type: 2; style: 5; label: string; url: string }[] }[];
+export type DiscordText = { type: 10; id?: number; content: string };
+export type DiscordSeparator = { type: 14; id?: number; spacing: 1; divider: true };
+export type DiscordContainer = {
+  type: 17;
+  id: 1;
+  accent_color: number;
+  components: (DiscordText | DiscordSeparator)[];
 };
+export type DiscordActionRow = {
+  type: 1;
+  components: { type: 2; style: 5; label: string; url: string }[];
+};
+export type DiscordMessage = {
+  content?: string;
+  flags?: 32768;
+  embeds?: DiscordEmbed[];
+  components?: (DiscordActionRow | DiscordContainer)[];
+};
+export const ROLL_LEGEND = 'Destaque = mantido · riscado = descartado';
+export type RollCardModel = {
+  title: string;
+  total: number;
+  unit: string;
+  expression: string;
+  groups: {
+    expression: string;
+    dice: { total: number; kept: boolean; raw: number[]; omittedFaces: number }[];
+    omitted: number;
+    explosions: string;
+  }[];
+  omittedGroups: number;
+  modifier: string;
+  target?: number;
+  passed?: boolean;
+};
+export function rollCardModel(result: RollRecord, reason = ''): RollCardModel {
+  return {
+    title: reason.trim().slice(0, 80) || 'Rolagem de dados',
+    total: result.total,
+    unit: result.mode === 'success' ? (result.total === 1 ? 'sucesso' : 'sucessos') : '',
+    expression: result.expression,
+    groups: result.groups.slice(0, 5).map((g) => {
+      const dice = g.dice
+        .slice(0, 20)
+        .map((d) => ({
+          total: d.total,
+          kept: d.kept,
+          raw: d.raw.slice(0, 8),
+          omittedFaces: Math.max(0, d.raw.length - 8),
+        }));
+      const explosions = dice
+        .filter((d) => d.raw.length > 1)
+        .map((d) => `${d.total} = ${d.raw.join(' + ')}${d.omittedFaces ? ' + …' : ''}`)
+        .join('; ');
+      return {
+        expression: g.raw,
+        dice,
+        omitted: g.dice.length - dice.length,
+        explosions: explosions.length > 160 ? `${explosions.slice(0, 155)}…` : explosions,
+      };
+    }),
+    omittedGroups: Math.max(0, result.groups.length - 5),
+    modifier: `${result.bonus >= 0 ? '+' : ''}${result.bonus}`,
+    target: result.target,
+    passed: result.passed,
+  };
+}
 export function rollOptions(options: Record<string, unknown>) {
   if (
     typeof options.expressao !== 'string' ||
@@ -116,60 +178,45 @@ function siteButton(origin?: string) {
     return {};
   }
 }
-export function formatRoll(result: RollRecord, reason = '', origin?: string): DiscordMessage {
-  const shown = result.groups.slice(0, 5);
-  const fields: NonNullable<DiscordEmbed['fields']> = shown.map((g, i) => {
-    const tokens = g.dice.map((d) => {
-      const raw =
-        d.raw.length > 1 ? ` (${d.raw.slice(0, 8).join('+')}${d.raw.length > 8 ? '+…' : ''})` : '';
-      const text = `${d.total}${raw}`;
-      return d.kept ? `**${text}**` : `~~${text}~~`;
-    });
-    const kept: string[] = [];
-    let length = 0;
-    for (const token of tokens) {
-      if (length + token.length > 720) break;
-      kept.push(token);
-      length += token.length + 3;
-    }
-    const more =
-      kept.length < tokens.length ? `\n… ${tokens.length - kept.length} dados omitidos.` : '';
-    return {
-      name: `${g.raw} · grupo ${i + 1}`,
-      value: `${kept.join(' · ')}${more}\n${result.mode === 'success' ? 'Sucessos' : 'Subtotal'}: **${g.subtotal}**`,
-      inline: false,
-    };
+export function formatRoll(result: RollRecord, reason = '', _origin?: string): DiscordMessage {
+  const card = rollCardModel(result, reason);
+  const text = (id: number, content: string): DiscordText => ({ type: 10, id, content });
+  const separator = (id: number): DiscordSeparator => ({ type: 14, id, spacing: 1, divider: true });
+  const components: (DiscordText | DiscordSeparator)[] = [
+    text(2, `**${escape(card.title)}**`),
+    text(3, `# ${card.total}${card.unit ? ` ${card.unit}` : ''}`),
+    text(4, `\`${card.expression}\``),
+  ];
+  card.groups.forEach((g, i) => {
+    components.push(separator(5 + i));
+    const dice = g.dice
+      .map((d) =>
+        d.kept
+          ? `**\`${d.total}${d.raw.length > 1 ? '!' : ''}\`**`
+          : `~~\`${d.total}${d.raw.length > 1 ? '!' : ''}\`~~`,
+      )
+      .join(' ');
+    const omitted = g.omitted ? `\n… ${g.omitted} dados omitidos.` : '';
+    components.push(
+      text(
+        10 + i,
+        `\`${g.expression}\`\n\n${dice}${omitted}${g.explosions ? `\n-# Explosões: ${g.explosions}` : ''}`,
+      ),
+    );
   });
-  if (result.groups.length > shown.length)
-    fields.push({
-      name: 'Auditoria resumida',
-      value: `Mais ${result.groups.length - shown.length} grupos não exibidos para manter a mensagem legível.`,
-    });
-  fields.push({
-    name: 'Modificador',
-    value: `${result.bonus >= 0 ? '+' : ''}${result.bonus}`,
-    inline: true,
-  });
-  if (result.target !== undefined)
-    fields.push({
-      name: `Alvo ${result.target}`,
-      value: result.passed ? 'Passou ✓' : 'Não atingiu o alvo',
-      inline: true,
-    });
-  return {
-    content: '',
-    embeds: [
-      {
-        title: `${result.total}${result.mode === 'success' ? ' sucessos' : ' · resultado'}`,
-        description: `${reason ? `**${escape(reason.slice(0, 80))}**\n` : ''}\`${result.expression}\``,
-        color: result.passed === undefined ? 0xb79be7 : result.passed ? 0x81bba4 : 0xdf8fa4,
-        fields,
-        footer: { text: `INFERUS · ${result.roll_id} · riscados = descartados` },
-        timestamp: result.created_at,
-      },
-    ],
-    ...siteButton(origin),
-  };
+  if (card.omittedGroups)
+    components.push(
+      text(25, `-# Mais ${card.omittedGroups} grupos omitidos para manter a leitura.`),
+    );
+  components.push(
+    separator(26),
+    text(
+      30,
+      `Modificador  **${card.modifier}**${card.target !== undefined ? `\nAlvo ${card.target} · **${card.passed ? 'Passou' : 'Não atingiu'}**` : ''}`,
+    ),
+    text(31, `-# ${ROLL_LEGEND}`),
+  );
+  return { flags: 32768, components: [{ type: 17, id: 1, accent_color: 0xb79be7, components }] };
 }
 export function formatHelp(topic: unknown = 'inicio', origin?: string): DiscordMessage {
   const selected = helpTopics.some((t) => t.value === topic) ? topic : 'inicio';
@@ -271,14 +318,27 @@ export function embedsPermitted(permissions: unknown) {
   return (BigInt(permissions) & (1n << 14n)) !== 0n;
 }
 export function presentMessage(message: DiscordMessage, rich = true): DiscordMessage {
-  if (rich || !message.embeds?.length) return message;
+  if (rich) return message;
+  if (message.flags === 32768) {
+    const blocks = (message.components ?? [])
+      .filter((c): c is DiscordContainer => c.type === 17)
+      .flatMap((c) => c.components)
+      .filter((c): c is DiscordText => c.type === 10);
+    const summary = blocks.filter((c) => (c.id ?? 0) < 10 || (c.id ?? 0) >= 30),
+      audit = blocks.filter((c) => (c.id ?? 0) >= 10 && (c.id ?? 0) < 30);
+    const text = [...summary, ...audit].map((c) => c.content).join('\n\n');
+    return {
+      content:
+        text.length > 1900
+          ? `${text.slice(0, 1830)}\n… Mensagem abreviada para caber no Discord.`
+          : text,
+    };
+  }
+  if (!message.embeds?.length) return message;
   const blocks = [message.content];
   for (const embed of message.embeds) {
     blocks.push(`**${embed.title}**`, embed.description ?? '');
-    const fields = embed.fields ?? [];
-    const summary = fields.filter((f) => !f.name.includes(' · grupo ')),
-      audit = fields.filter((f) => f.name.includes(' · grupo '));
-    for (const field of [...summary, ...audit]) blocks.push(`**${field.name}**\n${field.value}`);
+    for (const field of embed.fields ?? []) blocks.push(`**${field.name}**\n${field.value}`);
     if (embed.footer) blocks.push(embed.footer.text);
   }
   const text = blocks.filter(Boolean).join('\n\n');

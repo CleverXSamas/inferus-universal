@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   evaluateSheet,
   resolveActionExpression,
@@ -12,6 +12,7 @@ import { roll } from '../packages/dice-core';
 import { RPG_PRESETS, type RpgPreset } from './presets';
 import { useAccount } from './AuthPanel';
 import { DeleteDialog, HistoryButtons, Icon, downloadJSON, useHistory } from './editor-shared';
+import { SheetRollDock, type SheetRoll } from './SheetRollDock';
 const localKey = 'inferus-sheet';
 const id = (prefix: string) => `${prefix}_${crypto.randomUUID().replaceAll('-', '').slice(0, 14)}`;
 function loadLocal(): Sheet | null {
@@ -432,7 +433,13 @@ export function SheetView() {
     } | null>(null),
     [savedLocally, setSavedLocally] = useState(true),
     [activeSection, setActiveSection] = useState(''),
-    [mobileTools, setMobileTools] = useState(false);
+    [mobileTools, setMobileTools] = useState(false),
+    [diceRoll, setDiceRoll] = useState<SheetRoll | null>(null),
+    [focusDiceInput, setFocusDiceInput] = useState(false);
+  const diceTrigger = useRef<HTMLElement | null>(null);
+  useEffect(() => {
+    setDiceRoll(null);
+  }, [sheet?.id]);
   const fieldCount = sheet?.sections.reduce((sum, s) => sum + s.fields.length, 0) ?? 0;
   useEffect(() => {
     let active = true;
@@ -528,18 +535,25 @@ export function SheetView() {
       setBusy(false);
     }
   };
-  const playAction = (f: Field) => {
+  const performRoll = (rawExpression: string, name: string) => {
+    setFocusDiceInput(false);
     try {
-      if (calculated.error) throw new Error(calculated.error);
-      const expression = resolveActionExpression(f.expression || '1d20', calculated.values);
-      const result = roll(expression, { user: 'local', channel: 'web' });
-      setNotice(
-        `${f.label}: ${result.total} · ${expression} · dados: ${result.groups.flatMap((g) => g.dice.filter((d) => d.kept).map((d) => d.total)).join(', ')}`,
-      );
+      if (rawExpression.includes('@') && calculated.error) throw new Error(calculated.error);
+      const expression = resolveActionExpression(rawExpression, calculated.values);
+      setDiceRoll({
+        result: roll(expression, { user: 'local', channel: 'web' }),
+        name,
+        expression: rawExpression,
+      });
+      setNotice('');
       setError('');
     } catch (e) {
-      setError((e as Error).message);
+      setDiceRoll({ result: null, name, expression: rawExpression, error: (e as Error).message });
     }
+  };
+  const playAction = (f: Field) => {
+    diceTrigger.current = document.activeElement as HTMLElement;
+    performRoll(f.expression || '1d20', f.label);
   };
   const start = (next: Sheet) => {
     change(next);
@@ -562,6 +576,25 @@ export function SheetView() {
           </div>
         </div>
         <div className="studio-actions">
+          {sheet && !choosing && (
+            <button
+              className="compact"
+              onClick={() => {
+                diceTrigger.current = document.activeElement as HTMLElement;
+                setFocusDiceInput(true);
+                setDiceRoll((current) =>
+                  current
+                    ? { ...current }
+                    : { result: null, name: 'Rolagem de atributos', expression: '4d6kh3' },
+                );
+              }}
+            >
+              {' '}
+              <Icon name="skill" size={15} />
+              Rolar dados
+            </button>
+          )}
+
           <HistoryButtons history={history} />
           {sheet && !choosing && (
             <>
@@ -1128,6 +1161,17 @@ export function SheetView() {
             </div>
           </>
         )
+      )}
+      {diceRoll && sheet && !choosing && (
+        <SheetRollDock
+          roll={diceRoll}
+          focusInput={focusDiceInput}
+          onRoll={performRoll}
+          onClose={() => {
+            setDiceRoll(null);
+            diceTrigger.current?.focus({ preventScroll: true });
+          }}
+        />
       )}
       {confirm && (
         <DeleteDialog

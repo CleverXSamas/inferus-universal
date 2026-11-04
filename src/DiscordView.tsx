@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { roll, type RollRecord } from '../packages/dice-core';
 import { diceExamples, rollOptions } from '../packages/discord-ui';
 import { useAccount } from './AuthPanel';
+import { RollCard } from './RollCard';
 import { Icon } from './editor-shared';
 type Config = {
   applicationId: string;
@@ -276,63 +277,7 @@ export function DiscordView() {
                   Inferus <span>APP</span>
                   <small>{privateRoll ? 'visível só para você' : 'visível para o canal'}</small>
                 </div>
-                <div
-                  className={`discord-result-embed ${result?.passed === false ? 'failed' : result?.passed ? 'passed' : ''}`}
-                >
-                  <span className="preview-result-label">{reason || 'Rolagem de dados'}</span>
-                  <strong className="preview-result-number" aria-live="polite">
-                    {result
-                      ? `${result.total}${result.mode === 'success' ? ' sucessos' : ''}`
-                      : '—'}
-                  </strong>
-                  <code>{result?.expression ?? expression}</code>
-                  {result ? (
-                    <>
-                      <div className="preview-dice-groups">
-                        {result.groups.slice(0, 4).map((g, i) => (
-                          <div key={i}>
-                            <small>{g.raw}</small>
-                            <div>
-                              {g.dice.slice(0, 20).map((d) => (
-                                <span
-                                  className={d.kept ? 'kept' : 'discarded'}
-                                  key={d.index}
-                                  title={d.raw.join(' + ')}
-                                >
-                                  {d.total}
-                                  {d.raw.length > 1 ? '!' : ''}
-                                </span>
-                              ))}
-                              {g.dice.length > 20 && <span>…</span>}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                      <div className="preview-result-meta">
-                        <span>
-                          Modificador{' '}
-                          <b>
-                            {result.bonus >= 0 ? '+' : ''}
-                            {result.bonus}
-                          </b>
-                        </span>
-                        {result.target !== undefined && (
-                          <span>
-                            Alvo {result.target} <b>{result.passed ? 'Passou' : 'Não atingiu'}</b>
-                          </span>
-                        )}
-                      </div>
-                      <small className="preview-audit-note">
-                        Destaque = mantido · riscado = descartado
-                      </small>
-                    </>
-                  ) : (
-                    <p>
-                      Teste uma expressão para ver o resultado, os dados mantidos e os
-                      modificadores.
-                    </p>
-                  )}
-                </div>
+                <RollCard result={result} reason={reason} expression={expression} />
               </div>
             </div>
             <div className="preview-caption">

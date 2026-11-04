@@ -64,15 +64,17 @@ export async function discordInteraction(request: Request, env: Env) {
       },
     });
   }
-  const respond = (data: DiscordMessage, privateReply = true) =>
-    json({
+  const respond = (data: DiscordMessage, privateReply = true) => {
+    const message = presentMessage(data, embedsPermitted(interaction.app_permissions));
+    return json({
       type: 4,
       data: {
-        ...presentMessage(data, embedsPermitted(interaction.app_permissions)),
-        flags: privateReply ? 64 : 0,
+        ...message,
+        flags: (message.flags ?? 0) | (privateReply ? 64 : 0),
         allowed_mentions: { parse: [] },
       },
     });
+  };
   if (interaction.type !== 2)
     return respond({ content: 'Interação não reconhecida. Use /ajuda para começar.' });
   const options = Object.fromEntries(

@@ -38,3 +38,11 @@ A cópia local continua usando a chave anterior, preservando fichas já existent
 ## Validação
 
 Os testes cobrem reutilização, movimentação de dependências, prevenção de ciclos, exclusões, mapa vazio e validação de documentos. Os fluxos de navegador verificam pan/zoom, drag de nós, gestos por toque, desfazer/refazer, persistência após recarga, fórmulas, recursos, ações e salvamento de fichas na conta.
+
+## Resultado de dados visível durante a criação
+
+A ficha possui “Rolar dados” na barra de ferramentas. Rolagens de ações e rolagens livres abrem um painel fixo no canto inferior direito, com total destacado e auditoria dos dados. O painel acompanha a rolagem da página e não desaparece por tempo. Pode ser recolhido, expandido, reaberto ou fechado; o fechamento preserva a posição de leitura e o rascunho.
+
+O painel permite outra expressão, nova rolagem e atalhos d20/d6/atributos. Referências de fórmula continuam sendo resolvidas pelos valores atuais da ficha. Falhas aparecem no próprio painel. No celular ele respeita a área disponível, possui rolagem interna e mantém os controles acessíveis. Não são dados 3D nem um envio automático ao Discord.
+
+O cartão visual é o mesmo usado na prévia do bot. Os resultados do painel são temporários e não alteram valores da ficha automaticamente. O comportamento se inspira no [Digital Dice do D&D Beyond](https://dndbeyond-support.wizards.com/hc/en-us/articles/7747201888404-Digital-Dice-How-to-roll-your-free-or-premium-Digital-Dice).

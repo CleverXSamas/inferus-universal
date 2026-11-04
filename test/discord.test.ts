@@ -20,7 +20,7 @@ test('Discord responde ao erro após deferReply sem tentar responder duas vezes'
     },
     editReply: async (body) => {
       calls.push('edit');
-      assert.match(body.content, /Expressão inválida/);
+      assert.match(body.content ?? '', /Expressão inválida/);
     },
   };
   await handleInteraction(i);
@@ -72,9 +72,13 @@ test('Discord Node compartilha o formato rico e respeita a privacidade no defer'
     deferReply: async (options) => assert.equal(options.ephemeral, true),
     editReply: async (body) => {
       edited = true;
-      assert.equal(body.embeds![0].title, `${record.total} · resultado`);
-      assert.match(body.embeds![0].description!, /Percepção/);
-      assert(body.embeds![0].fields!.some((f) => f.name === 'Alvo 10'));
+      assert.equal(body.flags, 32768);
+      const json = JSON.stringify(body.components);
+      assert.match(json, new RegExp(String(record.total)));
+      assert.match(json, /Percepção/);
+      assert.match(json, /Alvo 10/);
+      assert.equal(body.content, undefined);
+      assert.equal(body.embeds, undefined);
     },
   });
   assert(edited);
