@@ -11,7 +11,6 @@
     "test": "tsc -p tsconfig.test.json && node --test --experimental-test-isolation=none work/test-build/test/*.test.js",
     "test:statistics": "node --import tsx test/statistical/dice.ts",
     "bot": "tsx bot/index.ts",
-    "bot:register": "tsx bot/index.ts --register",
     "start:bot": "node dist-server/bot/index.js",
     "test:browser": "playwright test",
     "format": "prettier --write \"{server,packages,src,bot,test}/**/*.{ts,tsx}\" playwright.config.ts",
@@ -19,7 +18,8 @@
     "build:sites": "node scripts/build-sites.mjs",
     "check:edge": "tsc -p tsconfig.edge.json",
     "test:browser:edge": "playwright test -c playwright.edge.config.ts",
-    "package:sites": "npm run build:sites && node scripts/package-sites.mjs"
+    "package:sites": "npm run build:sites && node scripts/package-sites.mjs",
+    "bot:remove-slash": "tsx bot/index.ts --remove-slash"
   },
   "dependencies": {
     "@vitejs/plugin-react": "latest",

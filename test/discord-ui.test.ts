@@ -42,7 +42,7 @@ test('todos os exemplos e sugestões são expressões válidas e a consulta não
     assert(s.value.length <= 100);
   }
 });
-test('cartão nativo segue a referência: motivo, total, expressão, dados, modificador e legenda', () => {
+test('cartão nativo agrupa dados e bônus e troca fórmulas repetidas por descrição legível', () => {
   const message = formatRoll(example, 'Teste de percepção');
   assert.equal(message.flags, 32768);
   assert(!Object.hasOwn(message, 'content'));
@@ -53,11 +53,9 @@ test('cartão nativo segue a referência: motivo, total, expressão, dados, modi
   assert.deepEqual(container.components, [
     { type: 10, id: 2, content: '**Teste de percepção**' },
     { type: 10, id: 3, content: '# 20' },
-    { type: 10, id: 4, content: '`2d20kh1+5`' },
+    { type: 10, id: 4, content: '-# 2 dados de 20 lados · manter o maior' },
     { type: 14, id: 5, spacing: 1, divider: true },
-    { type: 10, id: 10, content: '`2d20kh1`\n\n**`15`** ~~`12`~~' },
-    { type: 14, id: 26, spacing: 1, divider: true },
-    { type: 10, id: 30, content: 'Modificador  **+5**' },
+    { type: 10, id: 10, content: '**`15`** ~~`12`~~  **+5**' },
     { type: 10, id: 31, content: `-# ${ROLL_LEGEND}` },
   ]);
   assert.deepEqual(new ContainerBuilder(container).toJSON(), container);
@@ -121,7 +119,7 @@ test('opções inválidas falham antes da execução e ajuda explica privacidade
   ])
     assert.throws(() => rollOptions(options));
   assert.equal(rollOptions({ expressao: '1d6', privado: false }).private, false);
-  assert.match(JSON.stringify(formatHelp('privacidade')), /privado:true/);
+  assert.match(JSON.stringify(formatHelp('privacidade')), /públicos/);
   assert.match(JSON.stringify(formatHelp('privacidade')), /não vincula/);
   assert.match(formatRollError(new Error('inválido')).content ?? '', /inválido/);
 });
@@ -138,4 +136,49 @@ test('canais sem permissão de embeds recebem resultado e alvo em texto com limi
   assert(message.content!.length <= 2000);
   assert.match(message.content!, /Alvo 15/);
   assert.match(message.content!, new RegExp(String(result.total)));
+});
+test('cartão público inclui GIF curto em miniatura sem alterar resultado ou criar etapa pendente', async () => {
+  const { presentMessage } = await import('../packages/discord-ui/index.ts');
+  const message = formatRoll(example, 'Teste de percepção', 'https://inferus.example');
+  const container = message.components![0] as DiscordContainer;
+  const section = container.components[0];
+  assert.equal(section.type, 9);
+  if (section.type !== 9) assert.fail('cabeçalho deve conter a miniatura');
+  assert.equal(section.accessory.type, 11);
+  assert.equal(
+    section.accessory.media.url,
+    'https://inferus.example/assets/inferus-roll.gif?roll=audit-test',
+  );
+  assert.equal(section.components[1].content, '# 20');
+  assert.deepEqual(new ContainerBuilder(container).toJSON(), container);
+  const text = presentMessage(message, false);
+  assert.match(text.content!, /Teste de percepção/);
+  assert.match(text.content!, /# 20/);
+  assert.equal(text.flags, undefined);
+  assert.notEqual(
+    formatRoll({ ...example, roll_id: 'next-roll' }, 'Teste', 'https://inferus.example')
+      .components?.[0] &&
+      JSON.stringify(
+        formatRoll({ ...example, roll_id: 'next-roll' }, 'Teste', 'https://inferus.example'),
+      ),
+    JSON.stringify(message),
+  );
+});
+test('referências 3d6 e 4d6 mantêm regras legíveis sem fórmula repetida ou bônus zero', () => {
+  for (const [expression, description] of [
+    ['3d6!', '3 dados de 6 lados · explosivos'],
+    ['4d6kh3', '4 dados de 6 lados · manter os 3 maiores'],
+    ['4d6dl1', '4 dados de 6 lados · manter os 3 maiores'],
+    ['2d20kl1-3', '2 dados de 20 lados · manter o menor'],
+    ['6d10>=8', '6 dados de 10 lados · sucesso em 8+'],
+  ]) {
+    const record = roll(expression);
+    const card = rollCardModel(record);
+    assert.equal(card.description, description);
+    const content = JSON.stringify(formatRoll(record));
+    assert(!content.includes('Modificador'));
+    assert(!content.includes(expression));
+    assert(!content.includes('**+0**'));
+    if (record.bonus === -3) assert(content.includes('**-3**'));
+  }
 });

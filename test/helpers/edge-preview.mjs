@@ -17,13 +17,18 @@ globalThis.fetch = (url, init) => {
     init?.headers?.authorization === 'Bot edge-fixture-token'
   )
     return Promise.resolve(
-      new Response(
-        JSON.stringify(
-          init.method
-            ? { id: 'command' }
-            : { id: env.DISCORD_CLIENT_ID, verify_key: env.DISCORD_PUBLIC_KEY },
-        ),
-      ),
+      init?.method === 'DELETE'
+        ? new Response(null, { status: 204 })
+        : new Response(
+            JSON.stringify(
+              String(url).endsWith('/commands')
+                ? [
+                    { id: '111111111111111111', name: 'rolar' },
+                    { id: '222222222222222222', name: 'ajuda' },
+                  ]
+                : { id: env.DISCORD_CLIENT_ID, verify_key: env.DISCORD_PUBLIC_KEY },
+            ),
+          ),
     );
   return originalFetch(url, init);
 };

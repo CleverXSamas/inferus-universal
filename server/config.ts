@@ -12,7 +12,7 @@ export function validateRuntimeConfiguration(
           'MANUS_OAUTH_API_URL',
           'MANUS_OAUTH_PORTAL_URL',
         ]
-      : ['DISCORD_TOKEN', 'DISCORD_CLIENT_ID', 'FRAGMENTOS_API_URL'];
+      : ['DISCORD_TOKEN', 'DISCORD_CLIENT_ID', 'PUBLIC_ORIGIN'];
   const issues = required
     .filter((key) => !env[key]?.trim())
     .map((key) => `${key} não configurado.`);
@@ -56,6 +56,7 @@ export function validateRuntimeConfiguration(
   } else {
     if (env.DISCORD_CLIENT_ID && !/^\d{17,20}$/.test(env.DISCORD_CLIENT_ID))
       issues.push('DISCORD_CLIENT_ID deve ser o Application ID numérico do Discord.');
+    secureUrl('PUBLIC_ORIGIN', true);
     if (env.FRAGMENTOS_API_URL) {
       try {
         const url = new URL(env.FRAGMENTOS_API_URL);

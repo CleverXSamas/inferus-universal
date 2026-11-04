@@ -2,7 +2,7 @@
 
 Publicação: https://inferus-universal.peneseretu.chatgpt.site
 
-A versão Sites executa a interface React e uma API HTTP em um único Worker, com armazenamento D1 para campanhas, fichas, histórico e árvores da API. Não precisa de servidor Node nem processo contínuo de bot. A alternativa Node/MySQL continua disponível no mesmo repositório, inclusive os comandos de build e testes originais.
+A versão Sites executa a interface React e uma API HTTP em um único Worker, com armazenamento D1 para campanhas, fichas, histórico e árvores da API. O site não precisa de servidor Node. O bot por prefixo requer um processo contínuo separado. A alternativa Node/MySQL continua disponível no mesmo repositório, inclusive os comandos de build e testes originais.
 
 ## Contas e dados
 
@@ -14,15 +14,13 @@ Fichas e campanhas vinculadas à conta são acessíveis apenas àquela identidad
 
 As alterações de campanha usam compare-and-swap com revisão no D1: uma operação concorrente relê o estado antes de alterar. Isso mantém o limite de dez participantes e evita que remoções, mensagens ou alterações de status sobrescrevam umas às outras.
 
-## Discord sem processo contínuo
+## Discord por prefixo
 
-A aplicação Discord é `1528465674731782347`. A chave pública foi configurada no ambiente da hospedagem. O receptor valida assinatura Ed25519 e timestamp, responde a PING e atende `/rolar`, incluindo respostas privadas. Não precisa de token de bot em cada execução.
+A aplicação Discord é `1528465674731782347`. O bot agora usa `!rolar`, `!r` e `!ajuda` como mensagens públicas. Isso exige um processo Node conectado ao Discord Gateway com Message Content Intent habilitado, fora da hospedagem HTTP do site. Consulte [o guia do bot](DISCORD.md) para configurar o serviço e remover os comandos de barra antigos.
 
-Para ativar, abra https://inferus-universal.peneseretu.chatgpt.site/discord, entre e informe um token novo da aplicação no formulário. A API verifica se o token pertence à aplicação e se a chave pública confere, cria ou atualiza `/rolar` e `/ajuda` (preservando outros comandos) e configura a URL de interações no Discord. Em seguida, apresenta o link de instalação no servidor.
+A página Discord inclui remoção autenticada dos antigos comandos globais. O token é usado somente nas requisições HTTPS ao Discord, sem gravação em D1, arquivos, logs ou localStorage. O formulário apaga o valor após a tentativa. A remoção não ativa o serviço por prefixo, e os testes usam um token fictício.
 
-O token é usado somente nas requisições HTTPS ao Discord, sem gravação em D1, arquivos, logs ou localStorage. O formulário apaga o valor após a tentativa. A configuração só ocorre depois do envio explícito do formulário; os testes usam um token fictício e não ativam a aplicação real.
-
-Endpoint de interações: `https://inferus-universal.peneseretu.chatgpt.site/api/discord/interactions`.
+O endpoint legado `https://inferus-universal.peneseretu.chatgpt.site/api/discord/interactions` continua validando assinatura Ed25519 e timestamp para ping e orientação de migração. Ele não executa rolagens por slash.
 
 ## Build e validação
 
@@ -56,6 +54,6 @@ O Cloudflare disponibiliza faixas gratuitas de Workers e D1 com cotas. Isso não
 
 ## Verificação da publicação
 
-A plataforma confirmou o deploy concluído, e o proprietário conferiu `/api/health`: `ok: true`, armazenamento D1 para campanhas/fichas/histórico/árvores, autenticação ChatGPT e transporte Discord HTTP. A ativação real do Discord depende do envio do token novo no formulário e da instalação no servidor.
+A plataforma confirma a publicação do site e seu armazenamento D1. `/api/health` verifica o banco e informa `discordTransport: "gateway-required"`; isso indica o modo necessário e não atesta que o bot esteja conectado.
 
-A tela `/discord` distingue configuração do serviço de confirmação de instalação. Após uma mudança de endereço público ou atualização do catálogo de comandos, use “Configurar ou atualizar comandos” para registrar novamente a versão e o endpoint atual. Consulte [o guia do bot](DISCORD.md) para autocomplete, motivo, privacidade, mensagens e referências de UX.
+A tela `/discord` mantém a conexão por prefixo como pendente até haver uma confirmação operacional externa. Publicar o site e remover comandos de barra não substituem a ativação do serviço contínuo.

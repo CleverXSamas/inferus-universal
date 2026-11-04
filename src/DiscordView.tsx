@@ -22,7 +22,6 @@ export function DiscordView() {
     [expression, setExpression] = useState('2d20kh1+5'),
     [target, setTarget] = useState(''),
     [reason, setReason] = useState('Teste de percepção'),
-    [privateRoll, setPrivateRoll] = useState(false),
     [result, setResult] = useState<RollRecord | null>(null),
     [previewError, setPreviewError] = useState(''),
     [copied, setCopied] = useState(''),
@@ -66,9 +65,8 @@ export function DiscordView() {
       expressao: expression,
       alvo: target === '' ? undefined : Number(target),
       motivo: reason,
-      privado: privateRoll,
     });
-    return `/rolar expressao:${input.expression}${target !== '' ? ` alvo:${input.target}` : ''}${input.reason ? ` motivo:${input.reason}` : ''}${input.private ? ' privado:true' : ''}`;
+    return `!rolar ${input.expression}${target !== '' ? ` alvo:${input.target}` : ''}${input.reason ? ` | ${input.reason}` : ''}`;
   };
   const preview = () => {
     try {
@@ -76,7 +74,6 @@ export function DiscordView() {
         expressao: expression,
         alvo: target === '' ? undefined : Number(target),
         motivo: reason,
-        privado: privateRoll,
       });
       setResult(roll(input.expression, { target: input.target, user: 'preview', channel: 'web' }));
       setPreviewError('');
@@ -95,10 +92,11 @@ export function DiscordView() {
       const response = await fetch('/api/discord/setup', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ botToken: submittedToken }),
+        body: JSON.stringify({ action: 'remove-slash', botToken: submittedToken }),
       });
       const out = await response.json();
-      if (!response.ok) throw new Error(out.error || 'Não foi possível atualizar os comandos.');
+      if (!response.ok)
+        throw new Error(out.error || 'Não foi possível remover os comandos antigos.');
       setActivated(true);
       if (config) setConfig({ ...config, installUrl: out.installUrl });
     } catch (e) {
@@ -125,13 +123,13 @@ export function DiscordView() {
             já faz parte da conversa.
           </h2>
           <p>
-            Role com contexto, confira cada dado e escolha quem acompanha o resultado. O mesmo motor
-            da sua mesa, no Discord.
+            Role com contexto, confira cada dado e compartilhe a jogada com todo o canal. O mesmo
+            motor da sua mesa, no Discord.
           </p>
           <div className="bot-feature-tags">
-            <span>/rolar + /ajuda</span>
+            <span>!rolar + !ajuda</span>
             <span>Resultados auditáveis</span>
-            <span>Privado quando você quiser</span>
+            <span>Comando visível na conversa</span>
           </div>
         </div>
         <div className="bot-hero-note">
@@ -214,25 +212,7 @@ export function DiscordView() {
                 />
               </label>
             </div>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={privateRoll}
-              className={`bot-privacy ${privateRoll ? 'is-private' : ''}`}
-              onClick={() => setPrivateRoll((v) => !v)}
-            >
-              <span className="privacy-track">
-                <i />
-              </span>
-              <span>
-                <b>{privateRoll ? 'Só você vê o resultado' : 'A mesa acompanha no canal'}</b>
-                <small>
-                  {privateRoll
-                    ? 'O comando incluirá privado:true.'
-                    : 'Ative para fazer uma rolagem reservada.'}
-                </small>
-              </span>
-            </button>
+            <p className="help-text">Comando e resultado ficam visíveis para todos no canal.</p>
             <div className="bot-builder-actions">
               <button type="submit">
                 <Icon name="skill" size={16} />
@@ -255,7 +235,7 @@ export function DiscordView() {
                 ) : (
                   <Icon name="arrow" size={15} />
                 )}{' '}
-                {copied === 'builder' ? 'Comando copiado' : 'Copiar /rolar'}
+                {copied === 'builder' ? 'Comando copiado' : 'Copiar !rolar'}
               </button>
             </div>
             {previewError && (
@@ -275,7 +255,7 @@ export function DiscordView() {
               <div className="discord-preview-body">
                 <div className="discord-bot-name">
                   Inferus <span>APP</span>
-                  <small>{privateRoll ? 'visível só para você' : 'visível para o canal'}</small>
+                  <small>visível para o canal</small>
                 </div>
                 <RollCard result={result} reason={reason} expression={expression} />
               </div>
@@ -293,22 +273,13 @@ export function DiscordView() {
               <h3>Da instalação à primeira jogada.</h3>
             </div>
           </div>
-          <div className={`bot-service-state ${config?.serviceReady ? 'prepared' : ''}`}>
+          <div className="bot-service-state">
             <i />
             <div>
-              <b>
-                {config?.serviceReady
-                  ? 'Serviço preparado'
-                  : config
-                    ? 'Configuração pendente'
-                    : configError
-                      ? 'Verificação indisponível'
-                      : 'Verificando serviço…'}
-              </b>
+              <b>Conexão por prefixo pendente</b>
               <p>
-                {config?.serviceReady
-                  ? 'Confirme a instalação usando /rolar no seu servidor.'
-                  : 'A configuração do serviço precisa estar disponível para instalar o bot.'}
+                O site está disponível. O bot precisa de uma conexão contínua ao Discord para
+                responder a !rolar; esta página não confirma que ele esteja online.
               </p>
             </div>
           </div>
@@ -341,20 +312,23 @@ export function DiscordView() {
             <li>
               <span className="install-step-number">02</span>
               <div>
-                <h4>Atualize os comandos do bot</h4>
+                <h4>Conecte o bot por prefixo</h4>
                 <p>
-                  Quem mantém a aplicação deve registrar esta versão para habilitar /ajuda,
-                  sugestões de expressões e o nome da jogada.
+                  Quem mantém o bot precisa habilitar Message Content Intent no Developer Portal e
+                  executar o serviço contínuo. A hospedagem HTTP deste site não recebe as mensagens
+                  do canal.
                 </p>
                 {!user ? (
                   <a className="auth-link" href={loginUrl} target="_top">
-                    Entre para configurar o Discord
+                    Entre para gerenciar os comandos antigos
                   </a>
                 ) : (
                   <details className="bot-admin-setup">
-                    <summary>Configurar ou atualizar comandos</summary>
+                    <summary>Remover comandos de barra antigos</summary>
                     <p>
-                      Abra a aba <b>Bot</b> da aplicação no Developer Portal e gere um token novo.
+                      Remove somente os comandos antigos rolar e ajuda do catálogo global. Não
+                      conecta o bot por prefixo. Se houve registro em um servidor de teste, a
+                      remoção desse servidor também deve ser executada pelo serviço do bot.
                     </p>
                     {config?.applicationId && (
                       <a
@@ -393,7 +367,7 @@ export function DiscordView() {
                         type="submit"
                         disabled={busy || !botToken.trim() || !config?.serviceReady}
                       >
-                        {busy ? 'Atualizando…' : 'Atualizar /rolar e /ajuda'}
+                        {busy ? 'Removendo…' : 'Remover comandos de barra'}
                       </button>
                     </form>
                   </details>
@@ -405,15 +379,15 @@ export function DiscordView() {
               <div>
                 <h4>Faça a primeira jogada</h4>
                 <p>
-                  No Discord, digite /rolar, selecione o Inferus e preencha a expressão. Para
-                  consultar exemplos, use /ajuda após atualizar os comandos.
+                  Com o bot online, envie !rolar como uma mensagem normal no canal. Todo mundo vê o
+                  que foi digitado e o resultado. Para consultar exemplos, envie !ajuda.
                 </p>
                 <div className="bot-command-copy">
-                  <code>/rolar expressao:1d20+5</code>
+                  <code>!rolar 1d20+5</code>
                   <button
                     className="icon-btn"
                     aria-label="Copiar primeira rolagem"
-                    onClick={() => void copy('/rolar expressao:1d20+5', 'first')}
+                    onClick={() => void copy('!rolar 1d20+5', 'first')}
                   >
                     <Icon name={copied === 'first' ? 'check' : 'arrow'} size={14} />
                   </button>
@@ -428,8 +402,8 @@ export function DiscordView() {
           )}
           {activated && (
             <p role="status" className="editor-notice">
-              Comandos ativados nesta sessão. /rolar e /ajuda foram registrados. Teste no Discord
-              para confirmar o uso no servidor.
+              Comandos de barra globais antigos removidos. A conexão por prefixo é configurada no
+              serviço contínuo do bot.
             </p>
           )}
           <details className="bot-connection-details">
@@ -439,7 +413,7 @@ export function DiscordView() {
               <input readOnly value={config?.applicationId ?? 'Verificando…'} />
             </label>
             <label>
-              Endpoint de interações
+              Endpoint legado de interações
               <input readOnly value={config?.interactionsEndpoint ?? 'Verificando…'} />
             </label>
             <button
@@ -468,7 +442,7 @@ export function DiscordView() {
             <span className="eyebrow">UM GUIA PARA TER SEMPRE À MÃO</span>
             <h3>Mais possibilidades. Menos tentativa e erro.</h3>
           </div>
-          <span className="bot-guide-label">/ajuda topico:expressoes</span>
+          <span className="bot-guide-label">!ajuda expressoes</span>
         </div>
         <div className="bot-example-grid">
           {diceExamples.map((p) => (
@@ -498,7 +472,7 @@ export function DiscordView() {
                 <button
                   className="icon-btn"
                   aria-label={`Copiar exemplo ${p.name}`}
-                  onClick={() => void copy(`/rolar expressao:${p.expression}`, p.id)}
+                  onClick={() => void copy(`!rolar ${p.expression}`, p.id)}
                 >
                   <Icon name={copied === p.id ? 'check' : 'arrow'} size={14} />
                 </button>
@@ -516,16 +490,19 @@ export function DiscordView() {
             <code>alvo:15</code>
           </article>
           <article>
-            <b>motivo</b>
+            <b>Nome da jogada</b>
             <p>
               Dá contexto à resposta: percepção, iniciativa, ataque ou o que sua história pedir.
             </p>
-            <code>motivo:Teste de percepção</code>
+            <code>| Teste de percepção</code>
           </article>
           <article>
-            <b>privado</b>
-            <p>Escolhe quem acompanha. Sem esta opção, a rolagem é compartilhada no canal.</p>
-            <code>privado:true</code>
+            <b>Mensagens públicas</b>
+            <p>
+              O comando digitado permanece no canal. Para rolar em particular, use o Dado Aberto no
+              site.
+            </p>
+            <code>!r 1d20+5</code>
           </article>
         </div>
       </section>
@@ -536,18 +513,20 @@ export function DiscordView() {
         </div>
         <div>
           <details>
-            <summary>Os comandos não aparecem no Discord.</summary>
+            <summary>O bot não responde a !rolar.</summary>
             <p>
-              Confirme que convidou a mesma aplicação mostrada nos dados de conexão e atualize os
-              comandos na etapa 2. Reabra o menu de comandos do Discord e confira as permissões do
-              canal e da aplicação.
+              Confira se o serviço contínuo está online, se Message Content Intent está habilitado e
+              se o bot pode visualizar o canal, enviar mensagens e inserir links. Em tópicos,
+              permita enviar mensagens em tópicos. Comandos de prefixo não aparecem no menu de
+              comandos.
             </p>
           </details>
           <details>
-            <summary>“Serviço preparado” significa que o bot já está instalado?</summary>
+            <summary>Publicar o site deixa o bot por prefixo online?</summary>
             <p>
-              Esse estado confirma a configuração do Inferus. A instalação e as permissões do seu
-              servidor são confirmadas ao executar /rolar dentro do Discord.
+              A publicação mantém o site e sua API disponíveis. O modo por prefixo precisa de um
+              processo Node conectado ao Discord Gateway, que permanece ativo fora da hospedagem
+              HTTP do site.
             </p>
           </details>
           <details>

@@ -1,14 +1,3 @@
-import {
-  expressionSuggestions,
-  embedsPermitted,
-  presentMessage,
-  type DiscordMessage,
-  formatHelp,
-  formatRoll,
-  formatRollError,
-  rollOptions,
-} from '../packages/discord-ui/index.js';
-import { roll } from '../packages/dice-core/index.js';
 import { json, type Env } from './types.js';
 const hexBytes = (value: string) =>
   Uint8Array.from(value.match(/.{2}/g) ?? [], (n) => parseInt(n, 16));
@@ -53,46 +42,14 @@ export async function discordInteraction(request: Request, env: Env) {
   if (interaction.application_id && interaction.application_id !== env.DISCORD_CLIENT_ID)
     return json({ error: 'Aplicação Discord incorreta.' }, 403);
   if (interaction.type === 1) return json({ type: 1 });
-  const items = Array.isArray(interaction.data?.options) ? interaction.data.options : [];
-  if (interaction.type === 4) {
-    const focused = items.find((o: any) => o?.focused === true && o.name === 'expressao');
-    return json({
-      type: 8,
-      data: {
-        choices:
-          interaction.data?.name === 'rolar' && focused ? expressionSuggestions(focused.value) : [],
-      },
-    });
-  }
-  const respond = (data: DiscordMessage, privateReply = true) => {
-    const message = presentMessage(data, embedsPermitted(interaction.app_permissions));
-    return json({
-      type: 4,
-      data: {
-        ...message,
-        flags: (message.flags ?? 0) | (privateReply ? 64 : 0),
-        allowed_mentions: { parse: [] },
-      },
-    });
-  };
-  if (interaction.type !== 2)
-    return respond({ content: 'Interação não reconhecida. Use /ajuda para começar.' });
-  const options = Object.fromEntries(
-    items.filter((o: any) => o && typeof o.name === 'string').map((o: any) => [o.name, o.value]),
-  );
-  if (interaction.data?.name === 'ajuda')
-    return respond(formatHelp(options.topico, new URL(request.url).origin));
-  if (interaction.data?.name !== 'rolar')
-    return respond({ content: 'Comando não reconhecido. Use /ajuda para consultar o Inferus.' });
-  try {
-    const input = rollOptions(options);
-    const result = roll(input.expression, {
-      target: input.target,
-      user: interaction.member?.user?.id ?? interaction.user?.id,
-      channel: 'discord',
-    });
-    return respond(formatRoll(result, input.reason, new URL(request.url).origin), input.private);
-  } catch (e) {
-    return respond(formatRollError(e));
-  }
+  if (interaction.type === 4) return json({ type: 8, data: { choices: [] } });
+  return json({
+    type: 4,
+    data: {
+      content:
+        'O Inferus usa mensagens públicas: !rolar 1d20+5 ou !ajuda. O modo por prefixo precisa estar conectado no servidor.',
+      flags: 64,
+      allowed_mentions: { parse: [] },
+    },
+  });
 }

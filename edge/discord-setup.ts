@@ -1,9 +1,9 @@
-import { commandDefinitions } from '../packages/discord-commands/index.js';
+import { removeLegacyCommands } from '../packages/discord-commands/index.js';
 import { ApiError, type Env } from './types.js';
 export const discordUrls = (origin: string, clientId: string) => ({
   applicationId: clientId,
   interactionsEndpoint: `${origin}/api/discord/interactions`,
-  installUrl: `https://discord.com/oauth2/authorize?client_id=${encodeURIComponent(clientId)}&scope=bot%20applications.commands&permissions=0`,
+  installUrl: `https://discord.com/oauth2/authorize?client_id=${encodeURIComponent(clientId)}&scope=bot&permissions=274877926400`,
 });
 export async function setupDiscord(botToken: unknown, origin: string, env: Env) {
   if (
@@ -50,7 +50,7 @@ export async function setupDiscord(botToken: unknown, origin: string, env: Env) 
         r.status >= 500 ? 503 : 400,
         `O Discord recusou a configuração (HTTP ${r.status}). Confira a aplicação no Developer Portal.`,
       );
-    return r.json() as Promise<any>;
+    return r.status === 204 ? null : (r.json() as Promise<any>);
   }
   // Possession of the matching bot token authorizes configuring this specific application.
   // Tokens are used only for these requests; never written to DB, logs, responses or storage.
@@ -59,17 +59,8 @@ export async function setupDiscord(botToken: unknown, origin: string, env: Env) 
     throw new ApiError(403, 'O token pertence a outra aplicação Discord.');
   if (String(app.verify_key).toLowerCase() !== env.DISCORD_PUBLIC_KEY.toLowerCase())
     throw new ApiError(409, 'A chave pública informada não corresponde à aplicação Discord.');
-  for (const command of commandDefinitions)
-    await discord(`/applications/${env.DISCORD_CLIENT_ID}/commands`, {
-      method: 'POST',
-      body: JSON.stringify(command),
-    });
-  const urls = discordUrls(origin, env.DISCORD_CLIENT_ID);
-  await discord('/applications/@me', {
-    method: 'PATCH',
-    body: JSON.stringify({ interactions_endpoint_url: urls.interactionsEndpoint }),
-  });
-  return { ok: true, ...urls, registeredCommands: commandDefinitions.map((c) => c.name) };
+  const removedCommands = await removeLegacyCommands(discord, env.DISCORD_CLIENT_ID);
+  return { ok: true, ...discordUrls(origin, env.DISCORD_CLIENT_ID), removedCommands };
 }
 
 export function discordConfig(origin: string, env: Env) {
@@ -82,7 +73,10 @@ export function discordConfig(origin: string, env: Env) {
   return {
     ...discordUrls(origin, env.DISCORD_CLIENT_ID ?? ''),
     serviceReady: ready,
+    transport: 'gateway',
+    gatewayStatus: 'unverified',
+    hostingRequired: true,
     installUrl: ready ? discordUrls(origin, env.DISCORD_CLIENT_ID!).installUrl : null,
-    commands: commandDefinitions.map((c) => c.name),
+    commands: ['!rolar', '!r', '!ajuda'],
   };
 }

@@ -208,6 +208,7 @@ export function createApplication(options: { databaseUrl?: string } = {}) {
         '.css': 'text/css',
         '.json': 'application/json',
         '.svg': 'image/svg+xml',
+        '.gif': 'image/gif',
       };
       res.writeHead(200, {
         'content-type': types[extension] ?? 'application/octet-stream',

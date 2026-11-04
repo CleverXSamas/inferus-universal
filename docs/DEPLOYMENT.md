@@ -1,6 +1,6 @@
 # Hospedagem de Inferus Universal no Railway
 
-A aplicação tem três serviços: `web` (HTTP), `bot` (processo contínuo Discord) e `MySQL` (banco com volume persistente). Ambos os serviços Node usam a mesma imagem Docker. O processo do bot não recebe domínio público.
+A aplicação tem três serviços: `web` (HTTP), `bot` (processo contínuo Discord) e `MySQL` (banco com volume persistente). Ambos os serviços Node usam a mesma imagem Docker. O bot também pode ser hospedado sozinho, usando o site Sites e sem depender do MySQL. O processo do bot não recebe domínio público.
 
 ## Acesso necessário
 
@@ -45,17 +45,17 @@ Aplicação Discord informada: `1528465674731782347`. O token deve pertencer a e
 | --- | --- |
 | `DISCORD_CLIENT_ID` | `1528465674731782347` |
 | `DISCORD_TOKEN` | Bot Token dessa mesma aplicação; configure como segredo |
-| `DISCORD_GUILD_ID` | Opcional, ID do servidor para registro de teste |
-| `DISCORD_REGISTER_COMMANDS` | `1`, para registrar `/rolar` ao iniciar |
-| `FRAGMENTOS_API_URL` | `http://${{web.RAILWAY_PRIVATE_DOMAIN}}:3000`, referência ao serviço web no mesmo ambiente |
+| `DISCORD_GUILD_ID` | Opcional, ID do servidor para remover slash legado |
+| `PUBLIC_ORIGIN` | Origem HTTPS do site publicado, usada nos links e no GIF |
+| `FRAGMENTOS_API_URL` | Não é exigida pelo bot por prefixo; o motor é local |
 
-O bot valida o token na API do Discord e verifica se pertence ao Application ID informado, sem imprimir o segredo. Depois registra `/rolar` e conecta ao gateway. Não é necessário Client Secret, privileged intent de mensagens ou endpoint público de interações.
+O bot valida o token na API do Discord e verifica se pertence ao Application ID informado, sem imprimir o segredo. Depois conecta ao Gateway para ler `!rolar`, `!r` e `!ajuda`. Habilite Message Content Intent na aba Bot do Developer Portal. Não exige Client Secret nem endpoint público de interações.
 
 ## Instalar o bot
 
-Para a aplicação informada, a [URL de instalação](https://discord.com/oauth2/authorize?client_id=1528465674731782347&scope=bot%20applications.commands&permissions=0) já pode ser aberta.
+Para a aplicação informada, a [URL de instalação](https://discord.com/oauth2/authorize?client_id=1528465674731782347&scope=bot&permissions=274877926400) já pode ser aberta.
 
-Depois do registro, o log mostra uma URL `https://discord.com/oauth2/authorize?...`. Abra-a com uma conta autorizada a adicionar aplicações ao servidor. Ela solicita apenas os escopos `bot` e `applications.commands`, com permissões adicionais zeradas. O token nunca aparece nessa URL.
+O convite solicita o escopo `bot` e permissões de visualizar canais, enviar mensagens, inserir links e enviar em tópicos. O token nunca aparece nessa URL. Remova os comandos antigos com `npm run bot:remove-slash`; configure `DISCORD_GUILD_ID` se também houve registro específico nesse servidor.
 
 Para conferir credenciais sem registrar comandos nem abrir o gateway:
 
@@ -72,7 +72,7 @@ Os comandos leem as variáveis do ambiente; não carregam `.env` automaticamente
 - O deploy web precisa responder a `/api/health` e reportar armazenamento `mysql`; o endpoint verifica a conexão e retorna 503 se o banco estiver indisponível.
 - Entre via Manus e salve uma ficha. Abra a conta em outra sessão de navegador e confira a ficha e as campanhas.
 - Reinicie o serviço web e confirme que os dados permanecem no MySQL.
-- O log do bot deve confirmar conexão ao Discord; execute `/rolar expressao:2d20kh1+5` no servidor em que foi instalado.
-- Verifique a resposta privada com a opção `privado`.
+- O log do bot deve confirmar conexão ao Discord; envie `!rolar 2d20kh1+5` no servidor em que foi instalado.
+- Confirme que o comando digitado e o resultado permanecem visíveis para todos no canal.
 
 A integração Railway permite concluir a criação, o deploy e a leitura de logs quando conectada. A criação da aplicação Discord, a emissão do token, a instalação no servidor e a autorização do callback OAuth Manus exigem acesso às respectivas contas. Não há publicação confirmada até que o provedor retorne o deploy concluído e uma URL real.

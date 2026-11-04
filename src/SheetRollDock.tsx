@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { RollRecord } from '../packages/dice-core';
 import { Icon } from './editor-shared';
-import { RollCard } from './RollCard';
+import { SimpleRollResult } from './SimpleRollResult';
 export type SheetRoll = {
   result: RollRecord | null;
   name: string;
@@ -13,11 +13,15 @@ export function SheetRollDock({
   onRoll,
   onClose,
   focusInput = false,
+  soundOn,
+  onToggleSound,
 }: {
   roll: SheetRoll;
   onRoll: (expression: string, name: string) => void;
   onClose: () => void;
   focusInput?: boolean;
+  soundOn: boolean;
+  onToggleSound: () => void;
 }) {
   const [collapsed, setCollapsed] = useState(false),
     [expression, setExpression] = useState(roll.expression);
@@ -40,9 +44,7 @@ export function SheetRollDock({
         <Icon name="skill" size={21} />
         <div>
           <span>DADOS DA FICHA</span>
-          <b>
-            {collapsed && roll.result ? `${roll.name} · ${roll.result.total}` : 'Sua última jogada'}
-          </b>
+          <b>{collapsed && roll.result ? `${roll.name} · ${roll.result.total}` : roll.name}</b>
         </div>
         <button
           className="icon-btn"
@@ -65,7 +67,9 @@ export function SheetRollDock({
               <p>{roll.error}</p>
             </div>
           ) : (
-            <RollCard result={roll.result} reason={roll.name} expression={roll.expression} />
+            <div className="result-card simple-result-surface">
+              <SimpleRollResult result={roll.result} />
+            </div>
           )}
         </div>
         <form
@@ -89,26 +93,36 @@ export function SheetRollDock({
             />
             <button type="submit">Rolar</button>
           </div>
-          <div className="sheet-dice-presets">
-            {[
-              ['1d20', 'd20'],
-              ['1d6', 'd6'],
-              ['4d6kh3', 'Atributos'],
-            ].map(([value, label]) => (
-              <button
-                type="button"
-                key={value}
-                onClick={() => {
-                  setExpression(value);
-                  onRoll(
-                    value,
-                    label === 'Atributos' ? 'Rolagem de atributos' : 'Rolagem de dados',
-                  );
-                }}
-              >
-                {label}
-              </button>
-            ))}
+          <div className="sheet-dice-options">
+            <div className="sheet-dice-presets">
+              {[
+                ['1d20', 'd20'],
+                ['1d6', 'd6'],
+                ['4d6kh3', 'Atributos'],
+              ].map(([value, label]) => (
+                <button
+                  type="button"
+                  key={value}
+                  onClick={() => {
+                    setExpression(value);
+                    onRoll(
+                      value,
+                      label === 'Atributos' ? 'Rolagem de atributos' : 'Rolagem de dados',
+                    );
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <button
+              type="button"
+              className={`sound-toggle ${soundOn ? 'on' : ''}`}
+              aria-pressed={soundOn}
+              onClick={onToggleSound}
+            >
+              {soundOn ? 'Som ligado' : 'Som desligado'}
+            </button>
           </div>
         </form>
       </div>

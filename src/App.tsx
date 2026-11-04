@@ -4,6 +4,8 @@ import { CampaignView } from './CampaignView';
 import { AuthPanel, AccountProvider, useAccount } from './AuthPanel';
 import { DiscordView } from './DiscordView';
 import { SheetView } from './SheetView';
+import { SimpleRollResult } from './SimpleRollResult';
+import { playDiceSound, useDiceSound } from './dice-feedback';
 
 const TreeView = lazy(() => import('./TreeView').then((module) => ({ default: module.TreeView })));
 
@@ -111,34 +113,13 @@ function saveRoll(r: RollRecord) {
 function Card({ children, className = '' }: { children: any; className?: string }) {
   return <section className={`card ${className}`}>{children}</section>;
 }
-function sound(enabled: boolean, success = true) {
-  if (!enabled || typeof window === 'undefined') return;
-  const C = window.AudioContext || (window as any).webkitAudioContext;
-  if (!C) return;
-  const ctx = new C();
-  const now = ctx.currentTime;
-  const notes = success ? [220, 330, 440] : [180, 140];
-  notes.forEach((freq, i) => {
-    const o = ctx.createOscillator(),
-      g = ctx.createGain();
-    o.type = 'triangle';
-    o.frequency.value = freq;
-    o.connect(g);
-    g.connect(ctx.destination);
-    g.gain.setValueAtTime(0.0001, now + i * 0.055);
-    g.gain.exponentialRampToValueAtTime(0.08, now + i * 0.055 + 0.015);
-    g.gain.exponentialRampToValueAtTime(0.0001, now + i * 0.055 + 0.14);
-    o.start(now + i * 0.055);
-    o.stop(now + i * 0.055 + 0.16);
-  });
-  setTimeout(() => ctx.close(), 400);
-}
 function Dice() {
   const [expression, setExpression] = useState('2d20kh1 + 5');
   const [target, setTarget] = useState('');
   const [result, setResult] = useState<RollRecord | null>(null);
   const [error, setError] = useState('');
-  const [soundOn, setSoundOn] = useState(true);
+  const [soundOn, toggleSound] = useDiceSound();
+  const [freshRoll, setFreshRoll] = useState<string | null>(null);
   const [history, setHistory] = useState<RollRecord[]>(loadRolls);
   const run = (exp = expression) => {
     try {
@@ -150,11 +131,12 @@ function Dice() {
       });
       saveRoll(r);
       setResult(r);
+      setFreshRoll(r.roll_id);
       setHistory((h) => [r, ...h].slice(0, 50));
-      sound(soundOn, r.passed !== false);
+      playDiceSound(soundOn, r.passed !== false);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Não foi possível rolar.');
-      sound(soundOn, false);
+      playDiceSound(soundOn, false);
     }
   };
   return (
@@ -173,7 +155,7 @@ function Dice() {
           <button
             aria-pressed={soundOn}
             className={`sound-toggle ${soundOn ? 'on' : ''}`}
-            onClick={() => setSoundOn((v) => !v)}
+            onClick={toggleSound}
           >
             {soundOn ? 'Som ligado' : 'Som desligado'} <span>◖</span>
           </button>
@@ -244,56 +226,10 @@ function Dice() {
         </div>
       </Card>
       <Card className="result-card">
-        <div className="result-caption">
-          <span className="eyebrow">A SORTE ESTÁ LANÇADA</span>
-          <span aria-hidden="true">✧</span>
-        </div>
-        <div aria-live="polite" aria-atomic="true">
-          {result ? (
-            <>
-              <div className="result-head">
-                <div>
-                  <span className="eyebrow">RESULTADO</span>
-                  <div className="big-number">{result.total}</div>
-                </div>
-                <span
-                  className={`status ${result.passed === undefined ? 'neutral' : result.passed ? 'good' : 'bad'}`}
-                >
-                  {result.passed === undefined ? 'sem alvo' : result.passed ? 'passou' : 'falhou'}
-                </span>
-              </div>
-              <div className="formula">{result.expression}</div>
-              {result.groups.map((g, i) => (
-                <div className="audit" key={i}>
-                  <div className="audit-label">
-                    Grupo {i + 1} <span>{g.subtotal}</span>
-                  </div>
-                  <div className="dice-row">
-                    {g.dice.map((d) => (
-                      <span
-                        className={d.kept ? 'die kept' : 'die'}
-                        key={d.index}
-                        title={`Explosão: ${d.raw.join(' → ')}`}
-                      >
-                        {d.total}
-                        {d.raw.length > 1 && <small>!</small>}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              ))}
-              <div className="total-line">
-                <span>Bônus</span>
-                <b>
-                  {result.bonus >= 0 ? '+' : ''}
-                  {result.bonus}
-                </b>
-              </div>
-              <div className="roll-id">
-                ID {result.roll_id} · {new Date(result.created_at).toLocaleTimeString('pt-BR')}
-              </div>
-            </>
-          ) : (
+        <SimpleRollResult
+          result={result}
+          animate={result?.roll_id === freshRoll}
+          empty={
             <div className="empty">
               <div className="result-emblem">
                 <NavIcon name="dados" />
@@ -302,8 +238,8 @@ function Dice() {
               <h3>Uma jogada. Mil possibilidades.</h3>
               <p>Seu resultado aparece aqui, com cada dado e modificador à vista.</p>
             </div>
-          )}
-        </div>
+          }
+        />
       </Card>
       <Card className="history">
         <div className="section-title">
@@ -325,7 +261,14 @@ function Dice() {
           </div>
         )}
         {history.slice(0, 6).map((r) => (
-          <button className="history-item" key={r.roll_id} onClick={() => setResult(r)}>
+          <button
+            className="history-item"
+            key={r.roll_id}
+            onClick={() => {
+              setFreshRoll(null);
+              setResult(r);
+            }}
+          >
             <span className="history-die" aria-hidden="true">
               ◇
             </span>

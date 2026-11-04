@@ -12,16 +12,19 @@ async function collect(dir) {
     else {
       const relative = '/' + path.slice(resolve(root, 'dist').length + 1).replaceAll('\\', '/');
       const ext = extname(path);
-      if (!['.html', '.js', '.css', '.json', '.svg'].includes(ext))
+      if (!['.html', '.js', '.css', '.json', '.svg', '.gif'].includes(ext))
         throw new Error(`Asset não suportado no bundle: ${relative}`);
       assets[relative] = {
-        content: await readFile(path, 'utf8'),
+        content:
+          ext === '.gif' ? (await readFile(path)).toString('base64') : await readFile(path, 'utf8'),
+        ...(ext === '.gif' ? { encoding: 'base64' } : {}),
         type: {
           '.html': 'text/html; charset=utf-8',
           '.js': 'text/javascript; charset=utf-8',
           '.css': 'text/css; charset=utf-8',
           '.json': 'application/json',
           '.svg': 'image/svg+xml',
+          '.gif': 'image/gif',
         }[ext],
       };
     }

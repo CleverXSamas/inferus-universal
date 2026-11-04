@@ -1,3 +1,5 @@
+import { useRollAnimation } from './dice-feedback';
+import type { CSSProperties } from 'react';
 import type { RollRecord } from '../packages/dice-core';
 import { rollCardModel, ROLL_LEGEND } from '../packages/discord-ui';
 export function RollCard({
@@ -10,31 +12,54 @@ export function RollCard({
   expression?: string;
 }) {
   const card = result ? rollCardModel(result, reason) : null;
+  const moving = useRollAnimation(result?.roll_id);
   return (
-    <div className="roll-card" data-testid="roll-card">
+    <div className={`roll-card ${moving ? 'is-roll-animating' : ''}`} data-testid="roll-card">
+      {result && (
+        <img
+          key={result.roll_id}
+          className="roll-card-flourish"
+          src={`/assets/inferus-roll.gif?roll=${encodeURIComponent(result.roll_id)}`}
+          width={68}
+          height={68}
+          alt=""
+          aria-hidden="true"
+        />
+      )}
       <span className="roll-card-title">{card?.title || reason || 'Rolagem de dados'}</span>
       <strong className="roll-card-total">
         {card ? card.total : '—'}
         {card?.unit && <small>{card.unit}</small>}
       </strong>
-      <code className="roll-card-expression">{card?.expression || expression}</code>
+      <span className="roll-card-description">
+        {card?.description ||
+          (expression ? 'Teste uma expressão para ver os dados' : 'Seus dados aparecem aqui')}
+      </span>
       {card ? (
         <>
           <div className="roll-card-groups">
             {card.groups.map((g, i) => (
               <div className="roll-card-group" key={i}>
-                <code>{g.expression}</code>
+                {card.groups.length > 1 && (
+                  <small className="roll-card-group-label">{g.label}</small>
+                )}
                 <div className="roll-card-dice">
                   {g.dice.map((d, j) => (
                     <span
                       className={d.kept ? 'kept' : 'discarded'}
                       key={j}
+                      style={{ '--die-delay': `${(j % 8) * 18}ms` } as CSSProperties}
                       title={`${d.raw.join(' + ')}${d.omittedFaces ? ' + …' : ''}`}
                     >
                       {d.total}
                       {d.raw.length > 1 ? '!' : ''}
                     </span>
                   ))}
+                  {i === card.groups.length - 1 && result!.bonus !== 0 && (
+                    <b className="roll-inline-modifier" aria-label={`Modificador ${card.modifier}`}>
+                      {card.modifier}
+                    </b>
+                  )}
                 </div>
                 {g.omitted > 0 && (
                   <small className="roll-card-note">… {g.omitted} dados omitidos.</small>
@@ -50,16 +75,13 @@ export function RollCard({
               </small>
             )}
           </div>
-          <div className="roll-card-meta">
-            <span>
-              Modificador <b>{card.modifier}</b>
-            </span>
-            {card.target !== undefined && (
+          {card.target !== undefined && (
+            <div className="roll-card-meta">
               <span>
                 Alvo {card.target} <b>{card.passed ? 'Passou' : 'Não atingiu'}</b>
               </span>
-            )}
-          </div>
+            </div>
+          )}
           <small className="roll-card-legend">{ROLL_LEGEND}</small>
         </>
       ) : (

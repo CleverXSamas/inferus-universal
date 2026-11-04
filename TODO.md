@@ -37,7 +37,10 @@ Todo preset deve ser duplicável, editável e abandonável. Nenhum preset pode b
 - [x] Publicar Worker com interface e API, sem servidor Node contínuo.
 - [x] Persistir campanhas, fichas, histórico e árvores da API em D1, com isolamento por conta.
 - [x] Usar identidade ChatGPT gerenciada pelo Sites; preservar Manus na versão Node/MySQL.
-- [x] Validar assinaturas Ed25519 e atender comandos Discord por HTTP.
-- [x] Fornecer ativação do Discord com token transitório, sem armazená-lo.
+- [x] Validar assinaturas Ed25519 no endpoint legado; rolagens atuais usam mensagens públicas por prefixo.
+- [x] Fornecer remoção dos comandos globais antigos com token transitório, sem armazená-lo.
 - [x] Publicação e health check D1 confirmados pelo proprietário.
-- [ ] Proprietário ativar `/rolar` na página Discord com o token novo e instalar no servidor.
+- [x] Implementar !rolar, !r e !ajuda, comandos visíveis, limites e descarte de mensagens comuns/bots.
+- [x] Simplificar cartões, juntar modificador e dados, animar rolagens e compartilhar som na ficha.
+- [ ] Habilitar Message Content Intent e configurar um serviço Gateway contínuo com token válido no cofre; confirmar uso real de !rolar no canal.
+- [ ] Remover rolar/ajuda do catálogo real do Discord com o formulário autenticado ou bot:remove-slash; incluir servidores com registro específico.

@@ -1,5 +1,13 @@
 # Changelog
 
+## Atualização de rolagens — 2026-11-04
+- Resultados simplificados: descrição legível e modificador junto dos dados, sem repetir a fórmula.
+- Animação curta e som compartilhado entre Dado Aberto e ficha; preferência local e suporte a movimento reduzido.
+- Miniatura GIF de uma única reprodução no cartão Discord e na prévia; entrega binária no Worker.
+- Bot por prefixo público (!rolar, !r e !ajuda), com Message Content Intent e processo Gateway separado da hospedagem HTTP do site.
+- Registro slash removido do runtime. Migração autenticada remove apenas rolar/ajuda antigos; endpoint legado orienta a usar prefixos.
+- Ativação do Gateway e remoção do catálogo real permanecem pendentes de configuração com credencial válida no serviço persistente.
+
 ## 1.5.0 — 2026-11-03
 - Publicação em Cloudflare Workers/Sites com API HTTP e persistência D1.
 - Login ChatGPT na versão Sites; alternativa Node/MySQL e Manus preservada.

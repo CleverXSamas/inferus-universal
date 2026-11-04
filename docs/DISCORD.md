@@ -1,59 +1,50 @@
-# Bot Inferus: revisão de experiência
+# Inferus no Discord
 
-A revisão usa o mesmo catálogo de comandos, exemplos e formatadores no bot Node, no endpoint HTTP e no guia web. O motor de dados permanece compartilhado com o rolador da aplicação.
+## Mensagens públicas com prefixo
 
-## Referências e aplicação
+- `!rolar 1d20+5` e o atalho `!r 1d20+5` rolam no canal.
+- `!r 2d20kh1+5 alvo:15 | Teste de percepção` compara com o alvo e nomeia a jogada. O alvo vem depois da expressão; o nome vem depois de `|`.
+- `!ajuda`, `!ajuda expressoes` e `!ajuda privacidade` respondem no canal.
+- O bot não apaga o comando digitado. Comandos, resultados, ajuda e erros são públicos. Para uma rolagem reservada, use o Dado Aberto no site.
+- Mensagens comuns, mensagens de bots/webhooks, mensagens de sistema e DMs são ignoradas. O serviço não busca o histórico do canal nem vincula fichas privadas à conta Discord.
+- Há um intervalo de 1,5 s e uma execução simultânea por usuário. As expressões mantêm os limites do motor: 1–40 dados por grupo, 2–1000 lados, 160 caracteres e bônus total entre −50 e +50. Nome de até 80 caracteres.
 
-- [Avrae — catálogo oficial](https://avrae.io/commands/): ajuda organizada por assunto e argumentos próximos da tarefa. Orienta `/ajuda`, os tópicos e a descoberta dos parâmetros do Inferus.
-- [Dice Maiden — repositório oficial atual](https://github.com/Humblemonk/dicemaiden-rs): exemplos curtos de notação de dados e ajuda acessível pelo comando. Orienta a coleção de exemplos copiáveis e os atalhos da prévia.
-- [Discord — Application Commands](https://docs.discord.com/developers/interactions/application-commands): comandos slash, opções tipadas e autocomplete. Orienta as sugestões de expressões sem restringir a digitação livre.
-- [Discord — Receiving and Responding](https://docs.discord.com/developers/interactions/receiving-and-responding): confirmação inicial em até três segundos, respostas efêmeras, permissões da aplicação e controle de menções. Orienta a validação anterior ao defer no Gateway, a ajuda privada e a resposta em texto quando embeds não são permitidos.
+## Cartão e movimento
 
-Não foram reutilizados código, marcas ou imagens desses bots.
+O total fica em destaque. Os valores mantidos e descartados aparecem na mesma linha do modificador, omitido quando zero. Uma descrição como “2 dados de 20 lados · manter o maior” substitui a fórmula repetida. Grupos diferentes conservam sua identificação, sinal e auditoria de explosões. O modo de sucessos continua identificado no total.
 
-## Comandos
+O cartão usa Components V2 com acento violeta. Uma miniatura GIF original de 840 ms gira uma única vez; cada rolagem possui uma URL distinta para reiniciar a apresentação. Ela é ilustrativa: o resultado criptográfico já está definido e é entregue na mesma mensagem, sem edição posterior nem espera. O GIF é servido pelo próprio site em `/assets/inferus-roll.gif`. O cliente Discord controla a reprodução de GIFs conforme suas preferências de acessibilidade. Sem permissão de inserir links, a resposta usa texto e preserva total, alvo e dados dentro do limite de 2.000 caracteres.
 
-- `/rolar expressao:1d20+5`: expressão livre ou sugestão do menu. Parâmetros opcionais: `alvo` (inteiro de -50 a 1000), `privado` (padrão falso) e `motivo` (até 80 caracteres).
-- `/ajuda`: primeiros passos; `topico:expressoes` mostra exemplos; `topico:privacidade` explica visibilidade, limites e o que a integração oferece. A ajuda é sempre privada.
+No site, Dado Aberto, ficha e prévia têm movimento curto. A ficha usa o resultado simples do Dado Aberto em um painel fixo no canto. O botão de som compartilha a preferência entre os dois roladores e persiste localmente. `prefers-reduced-motion` desativa o movimento no site.
 
-As respostas destacam total, motivo, expressão, dados mantidos/descartados, explosões, modificador e comparação com o alvo. Mensagens extensas abreviam a auditoria de forma explícita e respeitam os limites do Discord. O cartão usa motivo, total em destaque, expressão, dados, modificador e legenda, nessa ordem. O rodapé prioriza a legenda do print de referência. A auditoria exibida não implica armazenamento de uma auditoria completa no site.
+## Ativação do serviço contínuo
 
-Quando o canal não permite embeds, o resultado é apresentado como texto, priorizando total, alvo e modificador. Menções são desativadas nos dois transportes e o texto livre do motivo é escapado.
+A hospedagem Sites publica o site/API em HTTP. Ela não mantém este processo Node conectado ao Discord Gateway. Publicar o site, convidar a aplicação ou remover slash não comprova que o bot esteja online. A página mostra a conexão por prefixo como pendente, sem anunciar uma ativação que não foi verificada.
 
-No HTTP, erros de expressão são privados. No Gateway, expressões e opções são validadas antes do defer; falhas de serviço posteriores ao defer mantêm a visibilidade originalmente escolhida, como exige o Discord.
+1. Em Developer Portal → aplicação → Bot, habilite **Message Content Intent**. Aplicações verificadas podem precisar de aprovação do Discord para esse intent.
+2. Convide o bot com o escopo `bot` e as permissões Visualizar canais, Enviar mensagens, Inserir links e Enviar mensagens em tópicos. O convite não pede administrador nem leitura de histórico.
+3. No cofre do processo persistente, configure `DISCORD_TOKEN` com um token válido. Configure `DISCORD_CLIENT_ID` e `PUBLIC_ORIGIN` com a origem HTTPS do site publicado. Nunca comite `.env` nem envie tokens em mensagens.
+4. Execute `npm ci`, `npm run build` e `npm run start:bot`. Para desenvolvimento, `npm run bot`. O motor de rolagem roda localmente no serviço; não exige MySQL ou `FRAGMENTOS_API_URL`.
+5. Mantenha uma instância ativa com reinício automático. Valide `!rolar 1d20+5` em um canal e em um tópico. O comando digitado e a resposta devem ser públicos.
 
-## Tela `/discord`
+O Dockerfile existente também pode ser iniciado com `node dist-server/bot/index.js`. A máquina de desenvolvimento desta conversa não substitui uma hospedagem persistente.
 
-- Simulador com exemplos, motivo, dificuldade e escolha de privacidade.
-- Prévia local de resultados; o simulador não envia mensagens ao Discord.
-- Cópia do comando para uso no cliente Discord, onde o usuário confirma os campos.
-- Instalação guiada, atualização de comandos reservada a quem mantém a aplicação e solução de problemas.
-- “Serviço preparado” verifica somente a configuração do endpoint. A instalação e as permissões do servidor são confirmadas executando `/rolar` no Discord.
-- Dados públicos de conexão vêm do servidor; a chave pública e os segredos não são retornados pela rota de configuração.
+## Remover os comandos de barra antigos
 
-## Atualizar a aplicação real
+O código não registra slash e não executa rolagens por interações antigas. O endpoint assinado permanece para validação de assinatura/ping e orienta a usar prefixos; autocomplete devolve uma lista vazia. Registros já existentes no catálogo do Discord precisam de uma remoção autenticada:
 
-A publicação do site atualiza o processamento HTTP, mas não modifica automaticamente o catálogo registrado no Discord. Para disponibilizar `/ajuda`, autocomplete e `motivo`:
+- No serviço com token no cofre, execute `npm run bot:remove-slash`. Remove somente `rolar` e `ajuda` globais. Com `DISCORD_GUILD_ID`, remove também os registros nesse servidor. Repita para outros servidores onde houve registro específico.
+- Alternativamente, entre na página Discord do site e abra **Remover comandos de barra antigos**. O token é enviado uma vez por HTTPS e descartado. A aplicação e sua chave pública precisam corresponder às configurações; somente `rolar` e `ajuda` globais são removidos. Outros comandos são preservados. A ação não conecta o serviço por prefixo.
 
-1. Abra `/discord` e entre na conta.
-2. Em “Configurar ou atualizar comandos”, abra o Developer Portal da aplicação correta.
-3. Gere um token novo, informe-o exclusivamente no campo protegido do site e use “Atualizar /rolar e /ajuda”.
-4. Instale o bot no servidor e confirme com uma rolagem.
+A remoção pode ser repetida com segurança. Erros do Discord não refletem o token na resposta, e não há persistência desse segredo no site.
 
-O token é removido do campo ao iniciar a tentativa, usado apenas nas requisições autorizadas ao Discord e não é persistido em banco, conta, armazenamento do navegador ou logs. A atualização verifica ID e chave pública, faz upsert dos comandos e configura o endpoint. Outros comandos existentes da mesma aplicação são preservados. A CLI Node também usa upsert, inclusive com `DISCORD_GUILD_ID`.
+## Referências
 
-Erros de credencial, permissão, limite de tentativas e indisponibilidade recebem instruções específicas sem refletir a resposta bruta ou o token. O convite continua usando permissões zero e não pede administrador.
-
-Fichas e árvores continuam no site; esta revisão não cria vínculo automático de identidade Discord/conta, presença Gateway no serviço HTTP ou consulta remota de instalação.
+- [Avrae — comandos](https://avrae.io/commands/): comandos visíveis e expressões próximas da tarefa.
+- [Discord — Gateway Intents](https://docs.discord.com/developers/events/gateway#gateway-intents): Guild Messages e Message Content para ler comandos digitados.
+- [Discord — Components Reference](https://docs.discord.com/developers/components/reference): Container, Section e Thumbnail; GIF animado no acessório da seção.
+- [D&D Beyond — Digital Dice](https://dndbeyond-support.wizards.com/hc/en-us/articles/7747201888404-Digital-Dice-How-to-roll-your-free-or-premium-Digital-Dice): resultado destacado durante a edição da ficha.
 
 ## Validação
 
-Os testes cobrem exemplos, autocomplete, opções inválidas, formatos rico/texto, limites de mensagem, motivos com menções, ajuda privada, defer/edição de respostas, assinaturas HTTP, configuração pública, autorização de ativação, rate limiting, limpeza do token e prévia sem chamadas de envio.
-
-## Cartão alinhado à prévia
-
-Rolagens passam a usar Components V2: Container com faixa violeta, Text Display e Separator. O modelo `rollCardModel` é compartilhado entre a prévia web, o painel flutuante da ficha e a resposta do bot. A resposta nativa usa IS_COMPONENTS_V2 (32768), preserva o bit efêmero e não mistura os campos content/embeds com o container. A versão Node aplica a flag na edição da resposta diferida.
-
-O layout segue a referência enviada: motivo antes do total, expressão destacada, grupos com dados mantidos/descartados, divisores, modificador e legenda. Ao exceder os limites de leitura, os dois ambientes usam a mesma abreviação explícita. A fonte, o tamanho exato dos textos, os fundos e as bordas dos códigos são controlados pelo cliente Discord; CSS do site não é enviado para ele. Consulte [a referência oficial de componentes](https://docs.discord.com/developers/components/reference).
-
-Esta atualização muda o formato de novas respostas; não requer novo registro dos comandos quando o endpoint já aponta para esta aplicação publicada. Mensagens antigas não são reescritas.
+Os testes cobrem análise de prefixos, expressões inválidas, alvo, título, envio público, canais sem embeds, bloqueio de concorrência, recuperação após erro, descarte de mensagens comuns/bots/DMs, remoção seletiva de comandos e proteção do token. O SDK valida o JSON de Components V2. Os testes de navegador cobrem prévia, cópia de comandos, formato, painel fixo, movimento reduzido, persistência do som e entrega binária do GIF pelo Worker. Os testes usam mensagens e respostas locais; não enviam mensagens reais ao Discord nem confirmam uma conexão Gateway publicada.

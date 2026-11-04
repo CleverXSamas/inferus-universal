@@ -12,19 +12,19 @@ test('ficha: ação mostra resultado no canto, acompanha scroll e permite recolh
   await page.getByRole('button', { name: 'Rolar Ataque', exact: true }).click();
   const dock = page.getByRole('region', { name: 'Rolagem da ficha' });
   await expect(dock).toBeInViewport();
-  await expect(dock.locator('.roll-card-title')).toHaveText('Ataque');
-  await expect(dock.locator('.roll-card-total')).toHaveText(/^\d+$/);
+  await expect(dock.locator('.sheet-roll-dock-heading b')).toHaveText('Ataque');
+  await expect(dock.locator('.big-number')).toHaveText(/^\d+$/);
   expect(await dock.evaluate((el) => getComputedStyle(el).position)).toBe('fixed');
   await page.evaluate(() => window.scrollTo(0, 0));
   await expect(dock).toBeInViewport();
   await page.getByRole('button', { name: 'Recolher rolagem', exact: true }).click();
-  await expect(dock.locator('.roll-card')).not.toBeVisible();
+  await expect(dock.getByTestId('simple-roll-result')).not.toBeVisible();
   await expect(dock).toContainText('Ataque ·');
   await page.getByRole('button', { name: 'Rolar dados', exact: true }).click();
-  await expect(dock.locator('.roll-card')).toBeVisible();
+  await expect(dock.getByTestId('simple-roll-result')).toBeVisible();
   await page.getByLabel('Expressão dos dados da ficha', { exact: true }).fill('1d6+5');
   await dock.getByRole('button', { name: 'Rolar', exact: true }).click();
-  await expect(dock.locator('.roll-card-expression')).toHaveText('1d6+5');
+  await expect(dock.locator('.formula')).toHaveText('1 dado de 6 lados');
   await page.getByLabel('Expressão dos dados da ficha', { exact: true }).fill('invalido');
   await dock.getByRole('button', { name: 'Rolar', exact: true }).click();
   await expect(dock.getByRole('alert')).toBeInViewport();
@@ -41,8 +41,8 @@ test('celular: dados da ficha permanecem visíveis sem transbordar ou apagar a e
   const dock = page.getByRole('region', { name: 'Rolagem da ficha' });
   await page.getByLabel('Expressão dos dados da ficha', { exact: true }).fill('4d6kh3');
   await dock.getByRole('button', { name: 'Rolar', exact: true }).click();
-  await expect(dock.locator('.roll-card-dice span')).toHaveCount(4);
-  await expect(dock.locator('.roll-card-dice .discarded')).toHaveCount(1);
+  await expect(dock.locator('.dice-row .die')).toHaveCount(4);
+  await expect(dock.locator('.dice-row .die:not(.kept)')).toHaveCount(1);
   await expect(dock).toBeInViewport();
   await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
   await expect(dock).toBeInViewport();
@@ -74,10 +74,12 @@ test('prévia reproduz o exemplo do print usando o mesmo modelo do cartão Disco
   const card = page.getByTestId('roll-card');
   await expect(card.locator('.roll-card-title')).toHaveText('Teste de percepção');
   await expect(card.locator('.roll-card-total')).toHaveText('20');
-  await expect(card.locator('.roll-card-expression')).toHaveText('2d20kh1+5');
+  await expect(card.locator('.roll-card-description')).toHaveText(
+    '2 dados de 20 lados · manter o maior',
+  );
   await expect(card.locator('.roll-card-dice .kept')).toHaveText('15');
   await expect(card.locator('.roll-card-dice .discarded')).toHaveText('12');
-  await expect(card.locator('.roll-card-meta')).toContainText('Modificador +5');
+  await expect(card.locator('.roll-inline-modifier')).toHaveText('+5');
   await expect(card.locator('.roll-card-legend')).toHaveText(
     'Destaque = mantido · riscado = descartado',
   );

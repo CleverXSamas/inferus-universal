@@ -101,7 +101,7 @@ test('Worker: fichas, histórico e árvores persistem e respeitam o dono', async
     db.close();
   }
 });
-test('Discord HTTP: assinaturas válidas, replay, ping e resposta privada', async () => {
+test('Discord HTTP legado valida assinaturas e orienta a migração sem executar slash', async () => {
   const db = sqliteD1(),
     keys = await crypto.subtle.generateKey('Ed25519', true, ['sign', 'verify']);
   const publicKey = Buffer.from(await crypto.subtle.exportKey('raw', keys.publicKey)).toString(
@@ -156,10 +156,9 @@ test('Discord HTTP: assinaturas válidas, replay, ping e resposta privada', asyn
       )
     ).json()) as any;
     assert.equal(result.type, 4);
-    assert.equal(result.data.flags, 32768 | 64);
-    assert.equal(result.data.components[0].type, 17);
-    assert.match(JSON.stringify(result.data.components), /1d6/);
-    assert.equal(result.data.content, undefined);
+    assert.equal(result.data.flags, 64);
+    assert.match(result.data.content, /!rolar/);
+    assert.equal(result.data.components, undefined);
     assert.equal(result.data.embeds, undefined);
     assert.deepEqual(result.data.allowed_mentions, { parse: [] });
     const help = (await (
@@ -173,7 +172,7 @@ test('Discord HTTP: assinaturas válidas, replay, ping e resposta privada', asyn
       )
     ).json()) as any;
     assert.equal(help.data.flags, 64);
-    assert.match(help.data.embeds[0].title, /Expressões/);
+    assert.match(help.data.content, /!ajuda/);
     const choices = (await (
       await worker.fetch(
         await signed({
@@ -188,7 +187,7 @@ test('Discord HTTP: assinaturas válidas, replay, ping e resposta privada', asyn
       )
     ).json()) as any;
     assert.equal(choices.type, 8);
-    assert(choices.data.choices.some((c: any) => c.value === '2d20kh1+5'));
+    assert.deepEqual(choices.data.choices, []);
     const plain = (await (
       await worker.fetch(
         await signed({
@@ -206,7 +205,7 @@ test('Discord HTTP: assinaturas válidas, replay, ping e resposta privada', asyn
       )
     ).json()) as any;
     assert.equal(plain.data.embeds, undefined);
-    assert.match(plain.data.content, /Alvo 1/);
+    assert.match(plain.data.content, /!rolar/);
     assert.deepEqual(plain.data.allowed_mentions, { parse: [] });
     const invalid = (await (
       await worker.fetch(
@@ -215,7 +214,7 @@ test('Discord HTTP: assinaturas válidas, replay, ping e resposta privada', asyn
       )
     ).json()) as any;
     assert.equal(invalid.data.flags, 64);
-    assert.match(invalid.data.content, /expressão/);
+    assert.match(invalid.data.content, /!rolar/);
     assert.equal(
       (await worker.fetch(await signed({ type: 2, application_id: 'wrong' }), env)).status,
       403,
@@ -224,7 +223,7 @@ test('Discord HTTP: assinaturas válidas, replay, ping e resposta privada', asyn
     db.close();
   }
 });
-test('ativação Discord exige login e usa o token só no serviço correto', async (t) => {
+test('remoção de slash exige login, preserva outros comandos e descarta token', async (t) => {
   const db = sqliteD1(),
     env: Env = {
       DB: db,
@@ -239,6 +238,15 @@ test('ativação Discord exige login e usa o token só no serviço correto', asy
       (init?.headers as Record<string, string>).authorization,
       'Bot temporary-test-token',
     );
+    if (url.endsWith('/commands'))
+      return new Response(
+        JSON.stringify([
+          { id: '111111111111111111', name: 'rolar' },
+          { id: '222222222222222222', name: 'ajuda' },
+          { id: '333333333333333333', name: 'outro' },
+        ]),
+      );
+    if (init?.method === 'DELETE') return new Response(null, { status: 204 });
     if (!init?.method)
       return new Response(
         JSON.stringify({ id: env.DISCORD_CLIENT_ID, verify_key: env.DISCORD_PUBLIC_KEY }),
@@ -249,7 +257,10 @@ test('ativação Discord exige login e usa o token só no serviço correto', asy
     assert.equal(
       (
         await worker.fetch(
-          request('/api/discord/setup', undefined, { botToken: 'temporary-test-token' }),
+          request('/api/discord/setup', undefined, {
+            action: 'remove-slash',
+            botToken: 'temporary-test-token',
+          }),
           env,
         )
       ).status,
@@ -257,7 +268,10 @@ test('ativação Discord exige login e usa o token só no serviço correto', asy
     );
     assert.equal(calls.length, 0);
     const response = await worker.fetch(
-      request('/api/discord/setup', 'owner', { botToken: 'temporary-test-token' }),
+      request('/api/discord/setup', 'owner', {
+        action: 'remove-slash',
+        botToken: 'temporary-test-token',
+      }),
       env,
     );
     assert.equal(response.status, 200);
@@ -266,7 +280,7 @@ test('ativação Discord exige login e usa o token só no serviço correto', asy
     assert.ok(text.includes('/api/discord/interactions'));
     assert.deepEqual(
       calls.map((c) => c.method),
-      ['GET', 'POST', 'POST', 'PATCH'],
+      ['GET', 'GET', 'DELETE', 'DELETE'],
     );
     assert.equal(
       (await db.prepare('SELECT count(*) AS n FROM edge_campaigns').first<{ n: number }>())?.n,
@@ -288,9 +302,11 @@ test('configuração pública expõe somente dados de conexão; erros do Discord
     const response = await worker.fetch(request('/api/discord/config'), env);
     const data = (await response.json()) as any;
     assert.equal(data.serviceReady, true);
-    assert.deepEqual(data.commands, ['rolar', 'ajuda']);
+    assert.deepEqual(data.commands, ['!rolar', '!r', '!ajuda']);
+    assert.equal(data.gatewayStatus, 'unverified');
+    assert.equal(data.hostingRequired, true);
     assert(!JSON.stringify(data).includes(env.DISCORD_PUBLIC_KEY!));
-    assert.match(data.installUrl, /permissions=0/);
+    assert.match(data.installUrl, /permissions=274877926400/);
     const missing = (await (
       await worker.fetch(request('/api/discord/config'), { DB: db })
     ).json()) as any;
@@ -302,7 +318,10 @@ test('configuração pública expõe somente dados de conexão; erros do Discord
       async () => new Response(JSON.stringify({ token: 'do-not-reflect' }), { status: 429 }),
     );
     const limited = await worker.fetch(
-      request('/api/discord/setup', 'owner', { botToken: 'do-not-reflect' }),
+      request('/api/discord/setup', 'owner', {
+        action: 'remove-slash',
+        botToken: 'do-not-reflect',
+      }),
       env,
     );
     assert.equal(limited.status, 429);

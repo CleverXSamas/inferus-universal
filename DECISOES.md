@@ -22,3 +22,6 @@
 - 2026-11-02: fichas mantêm cópia local e sincronização explícita na conta. O salvamento mais recente substitui o documento remoto; não há mescla automática concorrente.
 - 2026-11-02: custos e efeitos de árvore ainda não são aplicados na ficha; a interface deixa de afirmar que esses efeitos já foram aplicados.
 - 2026-11-02: apenas /rolar é registrado no Discord. Comandos de ficha aguardam vínculo explícito Discord–Manus; configuração de credenciais e publicação são etapas externas.
+
+- 2026-11-04: a pedido do proprietário, comandos Discord passam a mensagens públicas por prefixo (!rolar/!r/!ajuda). O runtime não registra slash; remoção seletiva dos registros antigos requer credencial válida. A hospedagem HTTP Sites permanece para o site, e a conexão Gateway exige um serviço contínuo separado com Message Content Intent.
+- 2026-11-04: modificador fica junto dos valores dos dados; fórmulas repetidas são substituídas por descrição legível. Animações são breves e não atrasam ou alteram o resultado; som é opcional e compartilhado entre ficha e Dado Aberto.

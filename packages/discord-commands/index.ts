@@ -1,52 +1,23 @@
-import { helpTopics } from '../discord-ui/index.js';
-export const commandDefinitions = [
-  {
-    name: 'rolar',
-    description: 'Role dados, veja cada resultado e compartilhe com a mesa',
-    options: [
-      {
-        name: 'expressao',
-        description: 'Digite os dados ou escolha um exemplo: 1d20+5, 2d20kh1+5, 6d10>=8',
-        type: 3,
-        required: true,
-        min_length: 3,
-        max_length: 160,
-        autocomplete: true,
-      },
-      {
-        name: 'alvo',
-        description: 'Compare o resultado com esta dificuldade',
-        type: 4,
-        required: false,
-        min_value: -50,
-        max_value: 1000,
-      },
-      {
-        name: 'privado',
-        description: 'Só você vê o resultado (padrão: visível no canal)',
-        type: 5,
-        required: false,
-      },
-      {
-        name: 'motivo',
-        description: 'Dê um nome à jogada, como Teste de percepção',
-        type: 3,
-        required: false,
-        max_length: 80,
-      },
-    ],
-  },
-  {
-    name: 'ajuda',
-    description: 'Aprenda a usar o Inferus sem sair do Discord',
-    options: [
-      {
-        name: 'topico',
-        description: 'O que você quer consultar?',
-        type: 3,
-        required: false,
-        choices: helpTopics.map((t) => ({ ...t })),
-      },
-    ],
-  },
-];
+/** Removes only Inferus' former commands, preserving unrelated application commands. */
+export async function removeLegacyCommands(
+  request: (path: string, init?: RequestInit) => Promise<unknown>,
+  applicationId: string,
+  guildId?: string,
+) {
+  if (!/^\d{17,22}$/.test(applicationId)) throw new Error('Application ID inválido.');
+  if (guildId && !/^\d{17,22}$/.test(guildId)) throw new Error('ID do servidor inválido.');
+  const bases = [`/applications/${applicationId}/commands`];
+  if (guildId) bases.push(`/applications/${applicationId}/guilds/${guildId}/commands`);
+  let removed = 0;
+  for (const base of bases) {
+    const commands = await request(base);
+    if (!Array.isArray(commands)) throw new Error('O Discord retornou um catálogo inválido.');
+    for (const command of commands) {
+      if (command && ['rolar', 'ajuda'].includes(command.name) && /^\d{17,22}$/.test(command.id)) {
+        await request(`${base}/${command.id}`, { method: 'DELETE' });
+        removed++;
+      }
+    }
+  }
+  return removed;
+}

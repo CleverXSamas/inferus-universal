@@ -87,6 +87,11 @@ export default {
       if (url.pathname === '/api/discord/setup' && request.method === 'POST') {
         requireOwner();
         const b = await body(request);
+        if (b.action !== 'remove-slash')
+          throw new ApiError(
+            400,
+            'Reabra a página Discord para remover os comandos de barra antigos.',
+          );
         return json(await setupDiscord(b.botToken, url.origin, env));
       }
       if (url.pathname === '/api/auth/me' && request.method === 'GET')
@@ -105,7 +110,7 @@ export default {
           historyStorage: 'd1',
           treeStorage: 'd1',
           authStorage: 'chatgpt',
-          discordTransport: 'http',
+          discordTransport: 'gateway-required',
           discordConfigured: Boolean(env.DISCORD_PUBLIC_KEY),
         });
       }
@@ -249,16 +254,23 @@ export default {
         assets[pathname] ??
         (!pathname.split('/').pop()?.includes('.') ? assets['/index.html'] : undefined);
       if (!asset) throw new ApiError(404, 'Arquivo inexistente.');
-      return new Response(request.method === 'HEAD' ? null : asset.content, {
-        headers: {
-          'content-type': asset.type,
-          'x-content-type-options': 'nosniff',
-          'referrer-policy': 'no-referrer',
-          'cache-control': pathname.startsWith('/assets/')
-            ? 'public,max-age=31536000,immutable'
-            : 'no-cache',
+      return new Response(
+        request.method === 'HEAD'
+          ? null
+          : asset.encoding === 'base64'
+            ? Uint8Array.from(atob(asset.content), (c) => c.charCodeAt(0))
+            : asset.content,
+        {
+          headers: {
+            'content-type': asset.type,
+            'x-content-type-options': 'nosniff',
+            'referrer-policy': 'no-referrer',
+            'cache-control': pathname.startsWith('/assets/')
+              ? 'public,max-age=31536000,immutable'
+              : 'no-cache',
+          },
         },
-      });
+      );
     } catch (e) {
       if (e instanceof ApiError) return json({ error: e.message }, e.status);
       if (

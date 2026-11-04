@@ -31,6 +31,7 @@ test('bot admite API privada e exige token e ID de aplicação', () => {
     DISCORD_TOKEN: 'test-token',
     DISCORD_CLIENT_ID: '123456789012345678',
     FRAGMENTOS_API_URL: 'http://web.railway.internal:3000',
+    PUBLIC_ORIGIN: 'https://inferus.example',
   };
   assert.deepEqual(validateRuntimeConfiguration('bot', bot), []);
   assert.ok(

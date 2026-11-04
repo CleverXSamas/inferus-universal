@@ -44,15 +44,16 @@ Sem banco, o modo memória serve para desenvolvimento e perde dados ao reiniciar
 
 ## Discord
 
-O bot inclui o comando funcional `/rolar`, com expressão obrigatória, alvo opcional e resposta privada opcional. Usa a API de dados da mesma aplicação e não requer o intent de conteúdo de mensagens.
+O bot usa mensagens públicas com prefixo: `!rolar 1d20+5`, `!r 2d20kh1+5 alvo:15 | Percepção` e `!ajuda`. O comando digitado permanece no canal e o resultado usa o mesmo motor de dados do site.
 
-1. Crie uma aplicação/bot no Discord Developer Portal.
-2. Configure `DISCORD_TOKEN`, `DISCORD_CLIENT_ID` e `FRAGMENTOS_API_URL` no ambiente. A API precisa ser alcançável pelo processo do bot; use HTTPS ao atravessar a internet.
-3. Opcionalmente configure `DISCORD_GUILD_ID` para registrar o comando apenas em um servidor de teste.
-4. Execute `npm run bot:register` e abra a URL OAuth2 de instalação emitida.
-5. Execute `npm run bot`, ou `npm run build` seguido de `npm run start:bot`.
+O site publicado atende HTTP e não hospeda a conexão contínua do Discord Gateway. Para ativar o bot, execute um processo Node persistente:
 
-Token, instalação no Discord, URL pública e hospedagem do processo continuam dependendo da configuração externa. Nenhuma credencial é incluída no repositório. Comandos de ficha só devem ser publicados após implementar o vínculo explícito entre conta Discord e conta Manus; os placeholders anteriores foram removidos do registro.
+1. Habilite **Message Content Intent** em Discord Developer Portal → Bot.
+2. Configure `DISCORD_TOKEN` no cofre da hospedagem, `DISCORD_CLIENT_ID` e `PUBLIC_ORIGIN` com a origem HTTPS do site.
+3. Execute `npm run build` e `npm run start:bot` (ou use o Dockerfile com o comando de início `node dist-server/bot/index.js`). O bot não precisa de banco MySQL nem da API para rolar.
+4. Use `npm run bot:remove-slash` uma vez para remover os antigos comandos globais. Se houve registro em um servidor de teste, configure também `DISCORD_GUILD_ID`. O serviço nunca registra comandos slash.
+
+A página Discord do site inclui uma opção autenticada para remover os comandos globais antigos com um token temporário, sem armazená-lo. Ela não conecta o Gateway. Consulte [o guia do bot](docs/DISCORD.md) para permissões, migração e validação.
 
 ## Validação
 
@@ -76,7 +77,7 @@ A árvore visual demonstra geração e progressão, mas ainda não desconta uma 
 
 ## Hospedagem
 
-A versão gratuita adaptada está publicada em **https://inferus-universal.peneseretu.chatgpt.site**. Consulte o [guia Cloudflare/Sites](docs/CLOUDFLARE.md) para login ChatGPT, D1, build e ativação do Discord por HTTP. A versão Node/MySQL mantém Manus e não é substituída.
+A versão gratuita adaptada está publicada em **https://inferus-universal.peneseretu.chatgpt.site**. Consulte o [guia Cloudflare/Sites](docs/CLOUDFLARE.md) para login ChatGPT, D1, build e limites da hospedagem HTTP para o bot por prefixo. A versão Node/MySQL mantém Manus e não é substituída.
 
 
 O [guia de deploy no Railway](docs/DEPLOYMENT.md) descreve os serviços web, bot e MySQL, as referências privadas e o armazenamento dos segredos. Os arquivos `deploy/railway.web.toml` e `deploy/railway.bot.toml` configuram build, comandos de inicialização e reinício. Em produção, o servidor exige banco, origem HTTPS e OAuth configurados. `npm run bot:check` valida o token e a aplicação Discord sem registrar comandos.

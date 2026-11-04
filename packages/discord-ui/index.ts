@@ -59,11 +59,17 @@ export type DiscordEmbed = {
 };
 export type DiscordText = { type: 10; id?: number; content: string };
 export type DiscordSeparator = { type: 14; id?: number; spacing: 1; divider: true };
+export type DiscordSection = {
+  type: 9;
+  id: 32;
+  components: DiscordText[];
+  accessory: { type: 11; id: 33; media: { url: string }; description: string };
+};
 export type DiscordContainer = {
   type: 17;
   id: 1;
   accent_color: number;
-  components: (DiscordText | DiscordSeparator)[];
+  components: (DiscordText | DiscordSeparator | DiscordSection)[];
 };
 export type DiscordActionRow = {
   type: 1;
@@ -81,8 +87,10 @@ export type RollCardModel = {
   total: number;
   unit: string;
   expression: string;
+  description: string;
   groups: {
     expression: string;
+    label: string;
     dice: { total: number; kept: boolean; raw: number[]; omittedFaces: number }[];
     omitted: number;
     explosions: string;
@@ -92,27 +100,54 @@ export type RollCardModel = {
   target?: number;
   passed?: boolean;
 };
+export function describeDice(expression: string) {
+  const spec = parseExpression(expression);
+  return spec.groups
+    .map((g) => {
+      const parts = [
+        `${g.sign < 0 ? 'Subtrair ' : ''}${g.count} ${g.count === 1 ? 'dado' : 'dados'} de ${g.sides} lados`,
+      ];
+      if (g.explode) parts.push('explosivos');
+      if (g.keepMode !== 'all') {
+        const direction =
+          g.keepMode === 'high'
+            ? g.keepCount === 1
+              ? 'o maior'
+              : `os ${g.keepCount} maiores`
+            : g.keepCount === 1
+              ? 'o menor'
+              : `os ${g.keepCount} menores`;
+        parts.push(`manter ${direction}`);
+      }
+      if (g.successTarget !== undefined) parts.push(`sucesso em ${g.successTarget}+`);
+      return parts.join(' · ');
+    })
+    .join(' / ');
+}
 export function rollCardModel(result: RollRecord, reason = ''): RollCardModel {
   return {
     title: reason.trim().slice(0, 80) || 'Rolagem de dados',
     total: result.total,
     unit: result.mode === 'success' ? (result.total === 1 ? 'sucesso' : 'sucessos') : '',
     expression: result.expression,
+    description:
+      result.groups.length === 1
+        ? describeDice(result.expression)
+        : `${result.groups.length} grupos de dados`,
     groups: result.groups.slice(0, 5).map((g) => {
-      const dice = g.dice
-        .slice(0, 20)
-        .map((d) => ({
-          total: d.total,
-          kept: d.kept,
-          raw: d.raw.slice(0, 8),
-          omittedFaces: Math.max(0, d.raw.length - 8),
-        }));
+      const dice = g.dice.slice(0, 20).map((d) => ({
+        total: d.total,
+        kept: d.kept,
+        raw: d.raw.slice(0, 8),
+        omittedFaces: Math.max(0, d.raw.length - 8),
+      }));
       const explosions = dice
         .filter((d) => d.raw.length > 1)
         .map((d) => `${d.total} = ${d.raw.join(' + ')}${d.omittedFaces ? ' + …' : ''}`)
         .join('; ');
       return {
         expression: g.raw,
+        label: describeDice(g.raw),
         dice,
         omitted: g.dice.length - dice.length,
         explosions: explosions.length > 160 ? `${explosions.slice(0, 155)}…` : explosions,
@@ -178,14 +213,14 @@ function siteButton(origin?: string) {
     return {};
   }
 }
-export function formatRoll(result: RollRecord, reason = '', _origin?: string): DiscordMessage {
+export function formatRoll(result: RollRecord, reason = '', origin?: string): DiscordMessage {
   const card = rollCardModel(result, reason);
   const text = (id: number, content: string): DiscordText => ({ type: 10, id, content });
   const separator = (id: number): DiscordSeparator => ({ type: 14, id, spacing: 1, divider: true });
-  const components: (DiscordText | DiscordSeparator)[] = [
+  const components: (DiscordText | DiscordSeparator | DiscordSection)[] = [
     text(2, `**${escape(card.title)}**`),
     text(3, `# ${card.total}${card.unit ? ` ${card.unit}` : ''}`),
-    text(4, `\`${card.expression}\``),
+    text(4, `-# ${card.description}`),
   ];
   card.groups.forEach((g, i) => {
     components.push(separator(5 + i));
@@ -200,7 +235,7 @@ export function formatRoll(result: RollRecord, reason = '', _origin?: string): D
     components.push(
       text(
         10 + i,
-        `\`${g.expression}\`\n\n${dice}${omitted}${g.explosions ? `\n-# Explosões: ${g.explosions}` : ''}`,
+        `${card.groups.length > 1 ? `-# ${g.label}\n\n` : ''}${dice}${i === card.groups.length - 1 && result.bonus !== 0 ? `  **${card.modifier}**` : ''}${omitted}${g.explosions ? `\n-# Explosões: ${g.explosions}` : ''}`,
       ),
     );
   });
@@ -208,14 +243,30 @@ export function formatRoll(result: RollRecord, reason = '', _origin?: string): D
     components.push(
       text(25, `-# Mais ${card.omittedGroups} grupos omitidos para manter a leitura.`),
     );
-  components.push(
-    separator(26),
-    text(
-      30,
-      `Modificador  **${card.modifier}**${card.target !== undefined ? `\nAlvo ${card.target} · **${card.passed ? 'Passou' : 'Não atingiu'}**` : ''}`,
-    ),
-    text(31, `-# ${ROLL_LEGEND}`),
-  );
+  if (card.target !== undefined)
+    components.push(
+      separator(26),
+      text(30, `Alvo ${card.target} · **${card.passed ? 'Passou' : 'Não atingiu'}**`),
+    );
+  components.push(text(31, `-# ${ROLL_LEGEND}`));
+  try {
+    const url = new URL('/assets/inferus-roll.gif', origin);
+    if (url.protocol === 'https:') {
+      url.searchParams.set('roll', result.roll_id);
+      const header = components.splice(0, 3) as DiscordText[];
+      components.unshift({
+        type: 9,
+        id: 32,
+        components: header,
+        accessory: {
+          type: 11,
+          id: 33,
+          media: { url: url.href },
+          description: 'Animação curta de um dado girando e parando.',
+        },
+      });
+    }
+  } catch {}
   return { flags: 32768, components: [{ type: 17, id: 1, accent_color: 0xb79be7, components }] };
 }
 export function formatHelp(topic: unknown = 'inicio', origin?: string): DiscordMessage {
@@ -229,12 +280,13 @@ export function formatHelp(topic: unknown = 'inicio', origin?: string): DiscordM
         ? [
             {
               name: 'Só você',
-              value: 'Use `privado:true` em /rolar. A ajuda e os erros de expressão são privados.',
+              value:
+                'Comandos e resultados são públicos no canal. Use o rolador do site para uma jogada reservada.',
             },
             {
               name: 'No canal',
               value:
-                'Sem a opção privado, o resultado aparece para a mesa. O Inferus não lê o histórico da conversa.',
+                'Digite !rolar ou !r. O comando permanece na conversa e a resposta fica visível para a mesa. O bot processa apenas mensagens com seus comandos e não busca o histórico.',
             },
             {
               name: 'Limites de dados',
@@ -250,18 +302,17 @@ export function formatHelp(topic: unknown = 'inicio', origin?: string): DiscordM
         : [
             {
               name: '1 · Faça sua primeira jogada',
-              value:
-                '`/rolar expressao:1d20+5`\nDigite a expressão ou escolha uma sugestão no menu.',
+              value: '`!rolar 1d20+5`\nTambém aceita !r. Envie como uma mensagem normal no canal.',
             },
             {
               name: '2 · Dê contexto',
               value:
-                'Use `motivo` para nomear a jogada e `alvo` para comparar o total com uma dificuldade.',
+                'Exemplo: `!rolar 1d20+5 alvo:15 | Percepção`. O texto depois de | nomeia a jogada.',
             },
             {
-              name: '3 · Escolha quem vê',
+              name: '3 · A mesa acompanha',
               value:
-                'Use `privado:true` para receber a rolagem só para você. O padrão é mostrar no canal.',
+                'Seu comando e o resultado ficam no canal. Nenhuma mensagem original é apagada.',
             },
             {
               name: 'Leia cada dado',
@@ -277,7 +328,7 @@ export function formatHelp(topic: unknown = 'inicio', origin?: string): DiscordM
         description: 'Sua mesa. Seus dados. Um caminho claro para a próxima jogada.',
         color: 0xb79be7,
         fields,
-        footer: { text: 'INFERUS UNIVERSAL · /ajuda topico:expressoes para mais exemplos' },
+        footer: { text: 'INFERUS UNIVERSAL · !ajuda expressoes para mais exemplos' },
       },
     ],
     ...siteButton(origin),
@@ -291,7 +342,7 @@ export function formatRollError(error: unknown): DiscordMessage {
       {
         title: 'Vamos ajustar esta jogada',
         description:
-          'Experimente `1d20+5`, `2d20kh1+5` ou `6d10>=8`.\nUse `/ajuda` para consultar exemplos e limites.',
+          'Experimente `1d20+5`, `2d20kh1+5` ou `6d10>=8`.\nUse `!ajuda` para consultar exemplos e limites.',
         color: 0xdf8fa4,
       },
     ],
@@ -323,6 +374,7 @@ export function presentMessage(message: DiscordMessage, rich = true): DiscordMes
     const blocks = (message.components ?? [])
       .filter((c): c is DiscordContainer => c.type === 17)
       .flatMap((c) => c.components)
+      .flatMap((c) => (c.type === 9 ? c.components : [c]))
       .filter((c): c is DiscordText => c.type === 10);
     const summary = blocks.filter((c) => (c.id ?? 0) < 10 || (c.id ?? 0) >= 30),
       audit = blocks.filter((c) => (c.id ?? 0) >= 10 && (c.id ?? 0) < 30);

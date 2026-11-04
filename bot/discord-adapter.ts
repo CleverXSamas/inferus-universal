@@ -1,67 +1,83 @@
+import { roll } from '../packages/dice-core/index.js';
 import {
-  expressionSuggestions,
-  presentMessage,
   formatHelp,
   formatRoll,
   formatRollError,
+  presentMessage,
   rollOptions,
   type DiscordMessage,
 } from '../packages/discord-ui/index.js';
-import type { RollRecord } from '../packages/dice-core/index.js';
-export type Interaction = {
-  commandName: string;
-  options: Record<string, unknown>;
-  userId: string;
-  embedsAllowed?: boolean;
-  reply: (body: DiscordMessage & { ephemeral?: boolean }) => Promise<void>;
-  deferReply: (opts: { ephemeral?: boolean }) => Promise<void>;
-  editReply: (body: DiscordMessage) => Promise<void>;
-};
-const api = () => process.env.FRAGMENTOS_API_URL ?? 'http://localhost:3000';
-async function call(body: unknown): Promise<RollRecord> {
-  const response = await fetch(`${api()}/api/roll`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify(body),
-    signal: AbortSignal.timeout(10_000),
+export type PrefixCommand =
+  | { kind: 'help'; topic: string }
+  | { kind: 'roll'; expression: string; target?: number; reason: string };
+export function parsePrefixCommand(content: string): PrefixCommand | null {
+  const match = content.match(/^!(rolar|roll|r|ajuda)(?=\s|$)\s*([\s\S]*)$/i);
+  if (!match) return null;
+  if (content.length > 350) throw new Error('Use um comando de até 350 caracteres.');
+  if (match[1].toLowerCase() === 'ajuda') {
+    const topic = match[2].trim() || 'inicio';
+    if (!['inicio', 'expressoes', 'privacidade'].includes(topic))
+      throw new Error('Use !ajuda, !ajuda expressoes ou !ajuda privacidade.');
+    return { kind: 'help', topic };
+  }
+  const [options, ...caption] = match[2].split('|');
+  const target = options.match(/\s+alvo:(-?\d+)\s*$/i);
+  const input = rollOptions({
+    expressao: target ? options.slice(0, target.index).trim() : options.trim(),
+    alvo: target ? Number(target[1]) : undefined,
+    motivo: caption.join('|').trim(),
   });
-  if (!response.ok) {
-    const data = await response.json().catch(() => ({}));
-    throw new Error(
-      data.error || 'A mesa não respondeu agora. Tente novamente em alguns instantes.',
-    );
-  }
-  return response.json();
+  return { kind: 'roll', expression: input.expression, target: input.target, reason: input.reason };
 }
-export async function handleInteraction(i: Interaction) {
-  let deferred = false;
-  const present = (body: DiscordMessage) => presentMessage(body, i.embedsAllowed ?? true);
-  try {
-    if (i.commandName === 'ajuda')
-      return await i.reply({
-        ...present(formatHelp(i.options.topico, process.env.PUBLIC_ORIGIN)),
-        ephemeral: true,
-      });
-    if (i.commandName !== 'rolar')
-      return await i.reply({
-        content: 'Comando não reconhecido. Use /ajuda para começar.',
-        ephemeral: true,
-      });
-    const input = rollOptions(i.options);
-    await i.deferReply({ ephemeral: input.private });
-    deferred = true;
-    const result = await call({
-      expression: input.expression,
-      target: input.target,
-      user: i.userId,
-      channel: 'discord',
-    });
-    return await i.editReply(present(formatRoll(result, input.reason, process.env.PUBLIC_ORIGIN)));
-  } catch (e) {
-    const message = present(formatRollError(e));
-    if (deferred) return await i.editReply(message);
-    return await i.reply({ ...message, ephemeral: true });
-  }
+export type PrefixMessage = {
+  content: string;
+  userId: string;
+  isBot: boolean;
+  inGuild: boolean;
+  richAllowed: boolean;
+  reply: (body: DiscordMessage) => Promise<void>;
+};
+/** Does not read history, delete the player's command or emit mentions. */
+export function createPrefixHandler(origin?: string, now = Date.now) {
+  const active = new Set<string>();
+  const recent = new Map<string, number>();
+  return async (message: PrefixMessage) => {
+    if (
+      message.isBot ||
+      !message.inGuild ||
+      !/^!(rolar|roll|r|ajuda)(?=\s|$)/i.test(message.content)
+    )
+      return;
+    const time = now();
+    if (active.has(message.userId) || time - (recent.get(message.userId) ?? -Infinity) < 1500)
+      return;
+    // Bound the cache; expired entries never authorize parallel requests.
+    for (const [id, at] of recent) if (time - at >= 1500) recent.delete(id);
+    if (recent.size >= 10000) return;
+    recent.set(message.userId, time);
+    active.add(message.userId);
+    try {
+      let response: DiscordMessage;
+      try {
+        const command = parsePrefixCommand(message.content)!;
+        response =
+          command.kind === 'help'
+            ? formatHelp(command.topic, origin)
+            : formatRoll(
+                roll(command.expression, {
+                  target: command.target,
+                  user: message.userId,
+                  channel: 'discord',
+                }),
+                command.reason,
+                origin,
+              );
+      } catch (error) {
+        response = formatRollError(error);
+      }
+      await message.reply(presentMessage(response, message.richAllowed));
+    } finally {
+      active.delete(message.userId);
+    }
+  };
 }
-export { expressionSuggestions };
-export { commandDefinitions } from '../packages/discord-commands/index.js';

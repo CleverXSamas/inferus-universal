@@ -12,6 +12,7 @@ import { roll } from '../packages/dice-core';
 import { RPG_PRESETS, type RpgPreset } from './presets';
 import { useAccount } from './AuthPanel';
 import { DeleteDialog, HistoryButtons, Icon, downloadJSON, useHistory } from './editor-shared';
+import { playDiceSound, useDiceSound } from './dice-feedback';
 import { SheetRollDock, type SheetRoll } from './SheetRollDock';
 const localKey = 'inferus-sheet';
 const id = (prefix: string) => `${prefix}_${crypto.randomUUID().replaceAll('-', '').slice(0, 14)}`;
@@ -436,6 +437,7 @@ export function SheetView() {
     [mobileTools, setMobileTools] = useState(false),
     [diceRoll, setDiceRoll] = useState<SheetRoll | null>(null),
     [focusDiceInput, setFocusDiceInput] = useState(false);
+  const [soundOn, toggleSound] = useDiceSound();
   const diceTrigger = useRef<HTMLElement | null>(null);
   useEffect(() => {
     setDiceRoll(null);
@@ -540,14 +542,17 @@ export function SheetView() {
     try {
       if (rawExpression.includes('@') && calculated.error) throw new Error(calculated.error);
       const expression = resolveActionExpression(rawExpression, calculated.values);
+      const result = roll(expression, { user: 'local', channel: 'web' });
+      playDiceSound(soundOn, result.passed !== false);
       setDiceRoll({
-        result: roll(expression, { user: 'local', channel: 'web' }),
+        result,
         name,
         expression: rawExpression,
       });
       setNotice('');
       setError('');
     } catch (e) {
+      playDiceSound(soundOn, false);
       setDiceRoll({ result: null, name, expression: rawExpression, error: (e as Error).message });
     }
   };
@@ -1164,6 +1169,8 @@ export function SheetView() {
       )}
       {diceRoll && sheet && !choosing && (
         <SheetRollDock
+          soundOn={soundOn}
+          onToggleSound={toggleSound}
           roll={diceRoll}
           focusInput={focusDiceInput}
           onRoll={performRoll}

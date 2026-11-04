@@ -52,19 +52,24 @@ test('Worker: campanha restaura após recarga e preserva papéis', async ({ page
     await context.close();
   }
 });
-test('Worker: ativação Discord limpa o token e apresenta a instalação', async ({ page }) => {
+test('Worker: remoção de slash limpa token e mantém conexão por prefixo pendente', async ({
+  page,
+}) => {
   await page.goto('/discord');
-  await page.getByRole('link', { name: 'Entre para configurar o Discord' }).click();
+  await page.getByRole('link', { name: 'Entre para gerenciar os comandos antigos' }).click();
   await page.getByRole('button', { name: 'Discord', exact: true }).click();
-  await page.getByText('Configurar ou atualizar comandos', { exact: true }).click();
+  await page.getByText('Remover comandos de barra antigos', { exact: true }).click();
   await page.getByLabel('Novo token do bot').fill('edge-fixture-token');
-  await page.getByRole('button', { name: 'Atualizar /rolar e /ajuda', exact: true }).click();
-  await expect(page.getByRole('status')).toContainText('Comandos ativados');
+  await page.getByRole('button', { name: 'Remover comandos de barra', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText(
+    'Comandos de barra globais antigos removidos',
+  );
   await expect(page.getByLabel('Novo token do bot')).toHaveValue('');
   await expect(page.getByRole('link', { name: 'Adicionar ao servidor Discord' })).toHaveAttribute(
     'href',
     /client_id=1528465674731782347/,
   );
+  await expect(page.getByText('Conexão por prefixo pendente', { exact: true })).toBeVisible();
   expect(await page.evaluate(() => JSON.stringify(localStorage))).not.toContain(
     'edge-fixture-token',
   );
