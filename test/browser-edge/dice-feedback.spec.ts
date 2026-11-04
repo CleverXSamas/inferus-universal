@@ -38,6 +38,7 @@ test('Dado Aberto e ficha compartilham formato, animação e preferência de som
   await expect(dock.locator('.roll-id')).toContainText('ID ');
   expect(await page.evaluate(() => (window as any).__diceSounds)).toBeGreaterThan(sounds);
   await page.reload();
+  await page.getByRole('button', { name: 'Rolar dados', exact: true }).click();
   await expect(page.getByRole('button', { name: /Som ligado/ })).toHaveAttribute(
     'aria-pressed',
     'true',

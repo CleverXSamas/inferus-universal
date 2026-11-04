@@ -1,3 +1,5 @@
+import { discordAccounts } from './discord-accounts.js';
+import { CharacterError } from '../packages/campaign-characters/index.js';
 import { roll, PRESETS } from '../packages/dice-core/index.js';
 import { validateSheet, evaluateSheet, type Sheet } from '../packages/sheet-engine/index.js';
 import {
@@ -94,6 +96,15 @@ export default {
           );
         return json(await setupDiscord(b.botToken, url.origin, env));
       }
+      if (url.pathname === '/api/discord/account') {
+        const owner = requireOwner(),
+          accounts = discordAccounts(env);
+        if (request.method === 'GET') return json(await accounts.status(owner));
+        if (request.method === 'POST')
+          return json(await accounts.change(owner, await body(request)));
+      }
+      if (url.pathname === '/api/discord/bot' && request.method === 'POST')
+        return json(await discordAccounts(env).bot(request, await body(request)));
       if (url.pathname === '/api/auth/me' && request.method === 'GET')
         return json({ user, provider: 'chatgpt', loginUrl, logoutUrl });
       if (url.pathname === '/api/auth/login' && request.method === 'GET')
@@ -224,6 +235,12 @@ export default {
               return json(await campaigns.join(String(b.inviteToken ?? ''), b.name, user?.id));
             case '/api/campaigns/state':
               return json(await campaigns.get(locator, session, user?.id));
+            case '/api/campaigns/character':
+              return json(await campaigns.character(locator, session, b.participantId, user?.id));
+            case '/api/campaigns/character/save':
+              return json(
+                await campaigns.saveCharacter(locator, session, b.sheet, b.revision, user?.id),
+              );
             case '/api/campaigns/event':
               return json(await campaigns.event(locator, session, b.body, user?.id));
             case '/api/campaigns/status':
@@ -272,7 +289,8 @@ export default {
         },
       );
     } catch (e) {
-      if (e instanceof ApiError) return json({ error: e.message }, e.status);
+      if (e instanceof ApiError || e instanceof CharacterError)
+        return json({ error: e.message }, e.status);
       if (
         e instanceof Error &&
         !('code' in e) &&

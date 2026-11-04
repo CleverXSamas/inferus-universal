@@ -25,7 +25,9 @@
 ## Pendências identificadas na revisão
 
 - [ ] Integrar custo/moeda e efeitos de árvore à ficha; a demonstração atual apenas desbloqueia nós.
-- [ ] Vincular explicitamente contas Discord a contas Manus antes de oferecer comandos privados de ficha.
+- [x] Vincular Discord à conta Sites com código temporário, confirmação na conta e seleção do personagem ativo; manter Manus separado.
+- [x] Integrar ficha e árvore ao personagem de campanha com permissões de dono/consulta do DM e revisão de salvamento.
+- [x] Implementar !login, !vincular, !ficha, !skills, !campanhas e !acao, sem comandos de barra.
 - [ ] Persistir histórico e árvores da API; hoje permanecem em memória.
 
 ## Princípio de extensibilidade

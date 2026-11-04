@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseExpression, roll, recalculate } from '../packages/dice-core/index.ts';
+import { parseExpression, roll, recalculate, isRollRecord } from '../packages/dice-core/index.ts';
 import { evaluateFormula } from '../packages/sheet-engine/index.ts';
 import { buyNode, canBuy, defaultPool, generateTree } from '../packages/tree-core/index.ts';
 test('parser normaliza grupos e bônus', () => {
@@ -49,4 +49,17 @@ test('árvore gerada só exibe nós com caminho a partir do centro', () => {
     tree.nodes.slice(1).every((n) => canBuy(opened, n.id)),
     true,
   );
+});
+
+test('histórico recupera resultados válidos e rejeita registros incompletos ou inconsistentes', () => {
+  for (const expression of ['2d20kh1+5', '3d6!', '4d6dl1', '-2d10+4', '6d10>=8-2d10>=8+3']) {
+    const record = roll(expression, { target: 10 });
+    assert(isRollRecord(JSON.parse(JSON.stringify(record))));
+    assert(!isRollRecord({ ...record, total: record.total + 1 }));
+    assert(!isRollRecord({ ...record, expression: 'inválido' }));
+    assert(!isRollRecord({ ...record, created_at: 'sem data' }));
+    assert(!isRollRecord({ ...record, groups: [{ raw: '1d6', dice: null }] }));
+  }
+  for (const invalid of [null, [], {}, { roll_id: 'antigo', groups: [{ dice: [] }] }])
+    assert(!isRollRecord(invalid));
 });

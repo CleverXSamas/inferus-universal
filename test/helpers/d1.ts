@@ -4,7 +4,11 @@ import { resolve } from 'node:path';
 import type { D1Database, D1Statement, D1Result } from '../../edge/types.js';
 export function sqliteD1(path = ':memory:'): D1Database & { close: () => void } {
   const db = new DatabaseSync(path);
-  db.exec(readFileSync(resolve('drizzle/0000_edge.sql'), 'utf8'));
+  const journal = JSON.parse(readFileSync(resolve('drizzle/meta/_journal.json'), 'utf8')) as {
+    entries: { tag: string }[];
+  };
+  for (const migration of journal.entries)
+    db.exec(readFileSync(resolve(`drizzle/${migration.tag}.sql`), 'utf8'));
   function prepare(sql: string): D1Statement {
     let values: unknown[] = [];
     return {

@@ -19,7 +19,8 @@
     "check:edge": "tsc -p tsconfig.edge.json",
     "test:browser:edge": "playwright test -c playwright.edge.config.ts",
     "package:sites": "npm run build:sites && node scripts/package-sites.mjs",
-    "bot:remove-slash": "tsx bot/index.ts --remove-slash"
+    "bot:remove-slash": "tsx bot/index.ts --remove-slash",
+    "package:bot": "node scripts/package-bot.mjs"
   },
   "dependencies": {
     "@vitejs/plugin-react": "latest",

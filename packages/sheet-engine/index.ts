@@ -1,3 +1,4 @@
+import { validateTreeDocument, type TreeDocument } from '../tree-editor/index.js';
 export type FieldType =
   'number' | 'text' | 'boolean' | 'resource' | 'list' | 'calculated' | 'action';
 export type Field = {
@@ -12,7 +13,7 @@ export type Field = {
   expression?: string;
 };
 export type Section = { id: string; label: string; fields: Field[] };
-export type Sheet = { id: string; name: string; sections: Section[] };
+export type Sheet = { id: string; name: string; sections: Section[]; skillTree?: TreeDocument };
 const identifier = /^[a-z][a-z0-9_]{0,39}$/;
 export function validateSheet(sheet: Sheet) {
   if (
@@ -91,6 +92,7 @@ export function validateSheet(sheet: Sheet) {
       }
     }
   }
+  if (sheet.skillTree !== undefined) validateTreeDocument(sheet.skillTree);
   return sheet;
 }
 function tokenize(text: string) {

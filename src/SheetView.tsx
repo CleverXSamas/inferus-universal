@@ -1,4 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { withCharacterTree } from '../packages/campaign-characters';
+import { requestJSON } from './http';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import {
   evaluateSheet,
   resolveActionExpression,
@@ -14,12 +16,15 @@ import { useAccount } from './AuthPanel';
 import { DeleteDialog, HistoryButtons, Icon, downloadJSON, useHistory } from './editor-shared';
 import { playDiceSound, useDiceSound } from './dice-feedback';
 import { SheetRollDock, type SheetRoll } from './SheetRollDock';
+const CharacterTreePanel = lazy(() =>
+  import('./CharacterTreePanel').then((m) => ({ default: m.CharacterTreePanel })),
+);
 const localKey = 'inferus-sheet';
 const id = (prefix: string) => `${prefix}_${crypto.randomUUID().replaceAll('-', '').slice(0, 14)}`;
 function loadLocal(): Sheet | null {
   try {
     const s = JSON.parse(localStorage.getItem(localKey) || 'null');
-    return s ? validateSheet({ ...s, name: s.name?.trim() || 'Personagem sem nome' }) : null;
+    return s ? withCharacterTree({ ...s, name: s.name?.trim() || 'Personagem sem nome' }) : null;
   } catch {
     return null;
   }
@@ -143,14 +148,11 @@ function moduleSection(key: string): Section {
   return { id: id('sec'), label: config.name, fields };
 }
 async function accountSheets(method = 'GET', data?: unknown) {
-  const r = await fetch('/api/sheets', {
+  return requestJSON('/api/sheets', {
     method,
     headers: { 'content-type': 'application/json' },
     body: data ? JSON.stringify(data) : undefined,
   });
-  const value = await r.json();
-  if (!r.ok) throw new Error(value.error || 'Não foi possível sincronizar a ficha.');
-  return value;
 }
 function FieldComposer({
   onCreate,
@@ -411,15 +413,24 @@ function CharacterField({
     </div>
   );
 }
-export function SheetView() {
+export function SheetView({
+  initialSheet,
+  onCampaignSave,
+}: { initialSheet?: Sheet | null; onCampaignSave?: (sheet: Sheet) => Promise<void> } = {}) {
   const { user } = useAccount(),
-    history = useHistory<Sheet | null>(loadLocal),
+    history = useHistory<Sheet | null>(() =>
+      initialSheet === undefined
+        ? loadLocal()
+        : initialSheet
+          ? withCharacterTree(initialSheet)
+          : null,
+    ),
     sheet = history.value;
   const [saved, setSaved] = useState<Sheet[]>([]),
     [mode, setMode] = useState('all'),
     [query, setQuery] = useState(''),
     [choosing, setChoosing] = useState(!sheet),
-    [editing, setEditing] = useState(true),
+    [editing, setEditing] = useState(!onCampaignSave),
     [notice, setNotice] = useState(''),
     [error, setError] = useState(''),
     [busy, setBusy] = useState(false),
@@ -446,7 +457,7 @@ export function SheetView() {
   useEffect(() => {
     let active = true;
     setSaved([]);
-    if (user)
+    if (user && !onCampaignSave)
       accountSheets()
         .then((s) => {
           if (active) setSaved(s);
@@ -459,6 +470,7 @@ export function SheetView() {
     };
   }, [user?.id]);
   useEffect(() => {
+    if (onCampaignSave) return;
     try {
       if (sheet) localStorage.setItem(localKey, JSON.stringify(sheet));
       setSavedLocally(true);
@@ -480,7 +492,11 @@ export function SheetView() {
   }, [sheet]);
   const change = (next: Sheet | null) => {
     try {
-      if (next) validateSheet({ ...next, name: next.name.trim() || 'Personagem sem nome' });
+      if (next)
+        next = {
+          ...withCharacterTree({ ...next, name: next.name.trim() || 'Personagem sem nome' }),
+          name: next.name,
+        };
       history.commit(next);
       setError('');
     } catch (e) {
@@ -570,14 +586,48 @@ export function SheetView() {
   };
   return (
     <div className="character-studio editor-workspace">
+      {onCampaignSave && (
+        <div className="campaign-character-save">
+          <p>
+            Ficha e árvore compartilhadas somente com você e o DM. Alterações ficam em rascunho até
+            salvar.
+          </p>
+          <button
+            disabled={busy || !sheet}
+            onClick={async () => {
+              if (!sheet || busy) return;
+              setBusy(true);
+              try {
+                await onCampaignSave(withCharacterTree(sheet));
+                setNotice('Ficha e árvore salvas na campanha.');
+                setError('');
+              } catch (e) {
+                setError((e as Error).message);
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            {busy ? 'Salvando…' : 'Salvar ficha e árvore na campanha'}
+          </button>
+        </div>
+      )}
       <div className="studio-toolbar">
         <div className="studio-title">
           <span className="studio-symbol">
             <Icon name="skill" size={25} />
           </span>
           <div>
-            <span className="eyebrow">ATELIÊ DE PERSONAGENS</span>
-            <h2>{choosing ? 'Uma ficha com a sua identidade.' : 'Seu personagem, por inteiro.'}</h2>
+            <span className="eyebrow">
+              {onCampaignSave ? 'PERSONAGEM DA CAMPANHA' : 'ATELIÊ DE PERSONAGENS'}
+            </span>
+            <h2>
+              {choosing
+                ? 'Uma ficha com a sua identidade.'
+                : onCampaignSave
+                  ? 'Sua ficha na mesa.'
+                  : 'Seu personagem, por inteiro.'}
+            </h2>
           </div>
         </div>
         <div className="studio-actions">
@@ -623,7 +673,7 @@ export function SheetView() {
           )}
         </div>
       </div>
-      {user && (
+      {user && !onCampaignSave && (
         <div className="account-sheet-bar">
           <label>
             Fichas da conta
@@ -859,7 +909,11 @@ export function SheetView() {
                 <p>
                   <span className="save-indicator">
                     <i />
-                    {savedLocally ? 'Cópia salva neste navegador' : 'Não foi possível salvar'}
+                    {onCampaignSave
+                      ? 'Rascunho da ficha da campanha'
+                      : savedLocally
+                        ? 'Cópia salva neste navegador'
+                        : 'Não foi possível salvar'}
                   </span>
                   {!user && ' · Entre para salvar na conta.'}
                 </p>
@@ -908,6 +962,16 @@ export function SheetView() {
                         <small>{s.fields.length}</small>
                       </button>
                     ))}
+                    {sheet.skillTree && (
+                      <button
+                        className={activeSection === 'skill-tree' ? 'current' : ''}
+                        onClick={() => focusSection('skill-tree')}
+                      >
+                        <span>✧</span>
+                        <b>Árvore de habilidades</b>
+                        <small>{sheet.skillTree.skills.length}</small>
+                      </button>
+                    )}
                   </nav>
                   <div className="sheet-summary">
                     <span>
@@ -1166,6 +1230,16 @@ export function SheetView() {
             </div>
           </>
         )
+      )}
+      {sheet?.skillTree && !choosing && (
+        <Suspense fallback={<div className="card">Abrindo árvore do personagem…</div>}>
+          <CharacterTreePanel
+            tree={sheet.skillTree}
+            onChange={(skillTree) =>
+              change({ ...sheet, skillTree: { ...skillTree, character: sheet.name } })
+            }
+          />
+        </Suspense>
       )}
       {diceRoll && sheet && !choosing && (
         <SheetRollDock

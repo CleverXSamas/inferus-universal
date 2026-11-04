@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 export function useHistory<T>(initial: () => T) {
   const [value, setValue] = useState(initial);
   const past = useRef<T[]>([]),
@@ -143,6 +143,7 @@ export function Modal({
   wide?: boolean;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
   useEffect(() => {
     const dialog = ref.current!;
     const focused = document.activeElement as HTMLElement | null;
@@ -169,12 +170,12 @@ export function Modal({
             onClose();
         }
       }}
-      aria-labelledby="editor-dialog-title"
+      aria-labelledby={titleId}
     >
       <div className="dialog-heading">
         <div>
           <span className="eyebrow">ESTÚDIO INFERUS</span>
-          <h2 id="editor-dialog-title">{title}</h2>
+          <h2 id={titleId}>{title}</h2>
         </div>
         <button className="icon-btn" onClick={onClose} aria-label="Fechar janela">
           <Icon name="close" />

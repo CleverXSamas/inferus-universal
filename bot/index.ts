@@ -1,4 +1,6 @@
-import { Client, GatewayIntentBits, MessageFlags, PermissionFlagsBits } from 'discord.js';
+import { createSiteIntegration } from './site-integration.js';
+import { botClientOptions } from './client-options.js';
+import { Client, MessageFlags, PermissionFlagsBits } from 'discord.js';
 import { createPrefixHandler } from './discord-adapter.js';
 import { removeLegacyCommands } from '../packages/discord-commands/index.js';
 import { validateDiscordCredentials } from './credentials.js';
@@ -34,14 +36,12 @@ async function main() {
     return;
   }
   assertRuntimeConfiguration('bot');
-  const client = new Client({
-    intents: [
-      GatewayIntentBits.Guilds,
-      GatewayIntentBits.GuildMessages,
-      GatewayIntentBits.MessageContent,
-    ],
-  });
-  const handle = createPrefixHandler(process.env.PUBLIC_ORIGIN);
+  const client = new Client(botClientOptions());
+  const handle = createPrefixHandler(
+    process.env.PUBLIC_ORIGIN,
+    Date.now,
+    createSiteIntegration(env('PUBLIC_ORIGIN'), token),
+  );
   client.once('clientReady', () =>
     console.log('Inferus conectado. Comandos públicos: !rolar, !r e !ajuda.'),
   );
@@ -55,6 +55,7 @@ async function main() {
     void handle({
       content: message.content,
       userId: message.author.id,
+      displayName: message.member?.displayName ?? message.author.username,
       isBot: message.author.bot,
       inGuild: true,
       richAllowed: permissions.has(PermissionFlagsBits.EmbedLinks),

@@ -5,7 +5,13 @@ const defaults: AuthInfo = { provider: 'manus', loginUrl: '/api/auth/login' };
 const Account = createContext<
   AuthInfo & { user: User | null; loading: boolean; logout: () => Promise<void> }
 >({ ...defaults, user: null, loading: true, logout: async () => {} });
-export const useAccount = () => useContext(Account);
+export const useAccount = () => {
+  const account = useContext(Account);
+  if (account.provider !== 'chatgpt') return account;
+  const login = new URL(account.loginUrl, location.origin);
+  login.searchParams.set('return_to', location.pathname + location.search);
+  return { ...account, loginUrl: login.pathname + login.search };
+};
 export function AccountProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null),
     [loading, setLoading] = useState(true),

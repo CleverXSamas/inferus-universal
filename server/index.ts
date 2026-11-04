@@ -1,3 +1,4 @@
+import { CharacterError } from '../packages/campaign-characters/index.js';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { resolve, extname, sep } from 'node:path';
@@ -159,6 +160,18 @@ export function createApplication(options: { databaseUrl?: string } = {}) {
             );
           case '/api/campaigns/state':
             return json(res, 200, await campaigns.get(locator, session, openId));
+          case '/api/campaigns/character':
+            return json(
+              res,
+              200,
+              await campaigns.character(locator, session, b.participantId, openId),
+            );
+          case '/api/campaigns/character/save':
+            return json(
+              res,
+              200,
+              await campaigns.saveCharacter(locator, session, b.sheet, b.revision, openId),
+            );
           case '/api/campaigns/event':
             return json(res, 200, await campaigns.event(locator, session, b.body, openId));
           case '/api/campaigns/status':
@@ -218,7 +231,7 @@ export function createApplication(options: { databaseUrl?: string } = {}) {
       res.end(req.method === 'HEAD' ? undefined : data);
     } catch (e) {
       const status =
-        e instanceof HttpError
+        e instanceof HttpError || e instanceof CharacterError
           ? e.status
           : e instanceof Error && e.message === 'Faça login para continuar.'
             ? 401

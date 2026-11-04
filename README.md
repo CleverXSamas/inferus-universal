@@ -73,7 +73,7 @@ O CI possui um job com MySQL e fluxos de navegador e outro job estatístico sepa
 
 Os seis presets de RPG são sínteses originais, editáveis e não oficiais. As fontes ficam disponíveis no seletor de fichas. O som é sintetizado localmente via Web Audio API.
 
-A árvore visual demonstra geração e progressão, mas ainda não desconta uma moeda nem aplica os efeitos na ficha. A interface informa efeitos desbloqueados. A integração completa árvore–ficha e comandos Discord de ficha estão no backlog.
+A árvore visual demonstra geração e progressão, mas ainda não desconta uma moeda nem aplica os efeitos na ficha. A interface informa efeitos desbloqueados. Fichas agora carregam sua própria árvore e podem ser vinculadas à campanha; o bot consulta o personagem ativo após vínculo de identidade confirmado. Custos e efeitos ainda são manuais. Consulte [o modo campanha](docs/CAMPAIGNS.md).
 
 ## Hospedagem
 

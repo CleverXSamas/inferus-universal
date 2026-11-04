@@ -223,3 +223,70 @@ export const PRESETS = [
   { id: 'explosivo', name: 'Explosivo', expression: '3d6!' },
   { id: 'pool', name: 'Pool de sucessos', expression: '6d10>=8' },
 ];
+
+/** Validate saved results before rendering history; broken browser storage is recoverable. */
+export function isRollRecord(value: unknown): value is RollRecord {
+  try {
+    if (!value || typeof value !== 'object') return false;
+    const r = value as RollRecord;
+    if (
+      typeof r.expression !== 'string' ||
+      typeof r.roll_id !== 'string' ||
+      !r.roll_id ||
+      typeof r.created_at !== 'string' ||
+      !Number.isFinite(Date.parse(r.created_at)) ||
+      !Number.isSafeInteger(r.total) ||
+      !Number.isSafeInteger(r.bonus) ||
+      !Array.isArray(r.groups)
+    )
+      return false;
+    if (r.target === undefined && r.passed !== undefined) return false;
+    const spec = parseExpression(r.expression);
+    if (r.mode !== spec.mode || r.bonus !== spec.bonus || r.groups.length !== spec.groups.length)
+      return false;
+    if (
+      r.target !== undefined &&
+      (!Number.isInteger(r.target) ||
+        r.target < -50 ||
+        r.target > 1000 ||
+        r.passed !== r.total >= r.target)
+    )
+      return false;
+    return (
+      r.groups.every((g, i) => {
+        const expected = spec.groups[i];
+        if (
+          !g ||
+          typeof g.raw !== 'string' ||
+          parseExpression(g.raw).normalized !== parseExpression(expected.raw).normalized ||
+          !Array.isArray(g.dice) ||
+          g.dice.length !== expected.count
+        )
+          return false;
+        if (
+          !g.dice.every(
+            (d, index) =>
+              d &&
+              d.index === index &&
+              typeof d.kept === 'boolean' &&
+              Array.isArray(d.raw) &&
+              d.raw.length > 0 &&
+              d.raw.length <= MAX_EXPLOSION_DEPTH &&
+              d.raw.every((n) => Number.isInteger(n) && n >= 1 && n <= expected.sides) &&
+              d.total === d.raw.reduce((sum, n) => sum + n, 0),
+          )
+        )
+          return false;
+        const kept = g.dice.filter((d) => d.kept);
+        return (
+          kept.length === expected.keepCount &&
+          g.subtotal === expected.sign * kept.reduce((sum, d) => sum + d.total, 0) &&
+          (r.mode !== 'success' ||
+            g.successes === kept.filter((d) => d.total >= expected.successTarget!).length)
+        );
+      }) && recalculate(r) === r.total
+    );
+  } catch {
+    return false;
+  }
+}

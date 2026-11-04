@@ -1,3 +1,5 @@
+import { DiscordAccountLink } from './DiscordAccountLink';
+import { requestJSON } from './http';
 import { useEffect, useRef, useState } from 'react';
 import { roll, type RollRecord } from '../packages/dice-core';
 import { diceExamples, rollOptions } from '../packages/discord-ui';
@@ -30,11 +32,7 @@ export function DiscordView() {
     builder = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const controller = new AbortController();
-    fetch('/api/discord/config', { signal: controller.signal })
-      .then(async (r) => {
-        if (!r.ok) throw new Error();
-        return r.json();
-      })
+    requestJSON<Config>('/api/discord/config', { signal: controller.signal })
       .then(setConfig)
       .catch((e) => {
         if (e.name !== 'AbortError')
@@ -89,14 +87,11 @@ export function DiscordView() {
     const submittedToken = botToken;
     setBotToken('');
     try {
-      const response = await fetch('/api/discord/setup', {
+      const out = await requestJSON<{ installUrl: string }>('/api/discord/setup', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ action: 'remove-slash', botToken: submittedToken }),
       });
-      const out = await response.json();
-      if (!response.ok)
-        throw new Error(out.error || 'Não foi possível remover os comandos antigos.');
       setActivated(true);
       if (config) setConfig({ ...config, installUrl: out.installUrl });
     } catch (e) {
@@ -141,6 +136,7 @@ export function DiscordView() {
           </p>
         </div>
       </section>
+      <DiscordAccountLink />
       <div className="bot-workspace-grid">
         <section className="bot-playground" ref={builder}>
           <div className="bot-section-heading">
@@ -532,8 +528,10 @@ export function DiscordView() {
           <details>
             <summary>Posso acessar minhas fichas pelo bot?</summary>
             <p>
-              Nesta versão, fichas e árvores são editadas no site. O bot não vincula automaticamente
-              a identidade Discord à conta do Inferus e não acessa suas fichas privadas.
+              Use !login para abrir o site, vincule seu Discord e escolha o personagem ativo. !ficha
+              mostra um resumo, !skills lista desbloqueios, !acao rola uma ação cadastrada e
+              !campanhas consulta suas mesas. O acesso só é liberado depois da confirmação da
+              identidade no site.
             </p>
           </details>
           <details>

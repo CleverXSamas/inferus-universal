@@ -1,3 +1,11 @@
+import {
+  readCharacter,
+  writeCharacter,
+  characterSummary,
+  type CharacterParticipant,
+} from '../packages/campaign-characters/index.js';
+import type { Sheet } from '../packages/sheet-engine/index.js';
+import { campaignStatusLabels } from '../packages/campaign-types/index.js';
 import type {
   CampaignRole,
   CampaignStatus,
@@ -6,7 +14,7 @@ import type {
   CampaignParticipant,
 } from '../packages/campaign-types/index.js';
 import { type D1Database, ApiError, hash, token, id, clean } from './types.js';
-type Participant = CampaignParticipant & { openId?: string };
+type Participant = CharacterParticipant & { openId?: string };
 type Campaign = Omit<CampaignState, 'participants'> & {
   participants: Participant[];
   inviteHash: string;
@@ -19,7 +27,10 @@ const publicState = (c: Campaign): CampaignState => ({
   status: c.status,
   createdAt: c.createdAt,
   revoked: c.revoked,
-  participants: c.participants.map(({ openId, ...p }) => ({ ...p })),
+  participants: c.participants.map(({ openId, character, ...p }) => ({
+    ...p,
+    character: characterSummary(character),
+  })),
   events: c.events.slice(-80),
 });
 const record = (c: Campaign, kind: CampaignEvent['kind'], author: string, body: string) => {
@@ -97,7 +108,13 @@ export function createEdgeCampaignStore(db: D1Database) {
         .prepare('INSERT INTO edge_campaigns (id,invite_hash,document) VALUES (?,?,?)')
         .bind(c.id, c.inviteHash, JSON.stringify(c))
         .run();
-      return { state: publicState(c), inviteToken, sessionToken, role: 'dm' as CampaignRole };
+      return {
+        state: publicState(c),
+        inviteToken,
+        sessionToken,
+        participantId,
+        role: 'dm' as CampaignRole,
+      };
     },
     async join(invite: string, name: unknown, owner?: string) {
       const inviteHash = await hash(invite),
@@ -131,7 +148,7 @@ export function createEdgeCampaignStore(db: D1Database) {
         }
         c.sessions = c.sessions.filter((s) => s.participantId !== p.id);
         c.sessions.push({ sessionHash, participantId: p.id });
-        return { state: publicState(c), role: p.role, sessionToken };
+        return { state: publicState(c), role: p.role, sessionToken, participantId: p.id };
       });
     },
     async get(locator: string, session: string, owner?: string) {
@@ -144,6 +161,26 @@ export function createEdgeCampaignStore(db: D1Database) {
           participantId: p.id,
           accountLinked: Boolean(p.openId),
         };
+      });
+    },
+    async character(locator: string, session: string, participantId?: string, owner?: string) {
+      const sessionHash = await hash(session);
+      return run(locator, false, (c) =>
+        readCharacter(c.participants, auth(c, sessionHash, owner), participantId),
+      );
+    },
+    async saveCharacter(
+      locator: string,
+      session: string,
+      sheet: Sheet | null,
+      revision: unknown,
+      owner?: string,
+    ) {
+      const sessionHash = await hash(session);
+      return run(locator, true, (c) => {
+        const viewer = auth(c, sessionHash, owner);
+        writeCharacter(viewer, sheet, revision);
+        return readCharacter(c.participants, viewer);
       });
     },
     async event(locator: string, session: string, body: unknown, owner?: string) {
@@ -163,7 +200,7 @@ export function createEdgeCampaignStore(db: D1Database) {
         if (!['lobby', 'active', 'paused', 'closed'].includes(status))
           throw new ApiError(400, 'Estado de campanha inválido.');
         c.status = status;
-        record(c, 'status', 'DM', `Sessão: ${status}.`);
+        record(c, 'status', 'DM', `Sessão: ${campaignStatusLabels[status]}.`);
         return publicState(c);
       });
     },

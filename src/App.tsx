@@ -1,9 +1,10 @@
-import { lazy, Suspense, useState } from 'react';
-import { roll, PRESETS, RollRecord } from '../packages/dice-core';
+import { lazy, Suspense, useEffect, useState } from 'react';
+import { roll, PRESETS, isRollRecord, RollRecord } from '../packages/dice-core';
 import { CampaignView } from './CampaignView';
 import { AuthPanel, AccountProvider, useAccount } from './AuthPanel';
 import { DiscordView } from './DiscordView';
 import { SheetView } from './SheetView';
+import { tabPaths, tabFromPath, type Tab } from './navigation';
 import { SimpleRollResult } from './SimpleRollResult';
 import { playDiceSound, useDiceSound } from './dice-feedback';
 
@@ -90,17 +91,7 @@ const localKey = 'fragmentos-rolls';
 function loadRolls(): RollRecord[] {
   try {
     const v = JSON.parse(localStorage.getItem(localKey) || '[]');
-    return Array.isArray(v)
-      ? v
-          .filter(
-            (r) =>
-              r &&
-              typeof r.roll_id === 'string' &&
-              Array.isArray(r.groups) &&
-              r.groups.every((g: any) => g && Array.isArray(g.dice)),
-          )
-          .slice(0, 50)
-      : [];
+    return Array.isArray(v) ? v.filter(isRollRecord).slice(0, 50) : [];
   } catch {
     return [];
   }
@@ -290,13 +281,18 @@ function Dice() {
   );
 }
 function Layout() {
-  const [tab, setTab] = useState(
-    location.pathname.startsWith('/campaign/')
-      ? 'campanha'
-      : location.pathname === '/discord'
-        ? 'discord'
-        : 'dados',
-  );
+  const [tab, setTab] = useState<Tab>(() => tabFromPath(location.pathname));
+  useEffect(() => {
+    const restore = () => setTab(tabFromPath(location.pathname));
+    window.addEventListener('popstate', restore);
+    return () => window.removeEventListener('popstate', restore);
+  }, []);
+  const navigate = (next: Tab) => {
+    if (next === tab) return;
+    history.pushState({}, '', tabPaths[next]);
+    setTab(next);
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  };
   const account = useAccount();
   const descriptions: Record<string, string> = {
     dados: 'Toda grande história começa com uma possibilidade.',
@@ -310,7 +306,7 @@ function Layout() {
     ['ficha', 'Criar ficha', '▣'],
     ['arvore', 'Criar árvore', '⌘'],
     ['campanha', 'Campanha', '✦'],
-    ...(account.provider === 'chatgpt' ? [['discord', 'Discord', '◉']] : []),
+    ...(account.provider === 'chatgpt' || tab === 'discord' ? [['discord', 'Discord', '◉']] : []),
   ];
   return (
     <div className="app">
@@ -330,7 +326,7 @@ function Layout() {
             <button
               aria-current={tab === id ? 'page' : undefined}
               className={tab === id ? 'active' : ''}
-              onClick={() => setTab(id)}
+              onClick={() => navigate(id as Tab)}
               key={id}
             >
               <NavIcon name={id} />

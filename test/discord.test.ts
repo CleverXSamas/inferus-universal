@@ -143,3 +143,86 @@ test('remoção apaga só rolar e ajuda globais e no servidor informado; não re
   assert(calls.every((s) => !s.includes('222222222222222222') && !s.startsWith('POST')));
   assert(calls.some((s) => s.includes('/guilds/987654321098765432/')));
 });
+
+test('ajuda aceita maiúsculas e acentos comuns em português', () => {
+  assert.deepEqual(parsePrefixCommand('!AJUDA EXPRESSÕES'), { kind: 'help', topic: 'expressoes' });
+  assert.deepEqual(parsePrefixCommand('!ajuda início'), { kind: 'help', topic: 'inicio' });
+});
+test('cliente do bot limita usuários em cache e mantém menções desativadas', async () => {
+  const { Client, LimitedCollection } = await import('discord.js');
+  const { botClientOptions } = await import('../bot/client-options.ts');
+  const client = new Client(botClientOptions());
+  try {
+    assert(client.users.cache instanceof LimitedCollection);
+    for (let i = 0; i < 200; i++)
+      client.users.cache.set(String(i), { id: String(i), client } as import('discord.js').User);
+    assert(client.users.cache.size <= 100);
+    assert.deepEqual(client.options.allowedMentions?.parse, []);
+  } finally {
+    await client.destroy();
+  }
+});
+test('bot consulta identidade vinculada, skills, campanhas e ação da ficha sem usar usuário informado no comando', async () => {
+  const calls: string[] = [];
+  const sheet = {
+    id: 'hero',
+    name: 'Heroína',
+    sections: [
+      {
+        id: 's',
+        label: 'Atributos',
+        fields: [
+          { id: 'forca', label: 'Força', type: 'number' as const, value: 4 },
+          { id: 'ataque', label: 'Ataque', type: 'action' as const, expression: '1d2+@forca' },
+        ],
+      },
+    ],
+    skillTree: (await import('../packages/tree-editor/index.ts')).newTree(),
+  };
+  sheet.skillTree.skills[0].unlocked = true;
+  let clock = 0;
+  const handler = createPrefixHandler('https://inferus.example', () => clock, {
+    pair: async (id, code) => {
+      calls.push(`${id}:${code}`);
+    },
+    character: async (id) => {
+      calls.push(id);
+      return sheet;
+    },
+    campaigns: async (id) => {
+      calls.push(id);
+      return [{ name: 'Campanha @everyone', status: 'active', participants: 2 }];
+    },
+  });
+  const replies: any[] = [];
+  const send = async (content: string) => {
+    clock += 2000;
+    await handler({
+      content,
+      userId: '111111111111111111',
+      displayName: 'Jogadora',
+      isBot: false,
+      inGuild: true,
+      richAllowed: true,
+      reply: async (body) => {
+        replies.push(body);
+      },
+    });
+  };
+  await send('!login');
+  assert.match(replies.at(-1).content, /https:\/\/inferus.example\/discord/);
+  await send('!vincular ' + 'x'.repeat(32));
+  assert.match(replies.at(-1).content, /Confirme/);
+  await send('!ficha');
+  assert.match(replies.at(-1).content, /Heroína/);
+  await send('!skills');
+  assert(replies.at(-1).content.includes(sheet.skillTree.skills[0].name));
+  await send('!campanhas');
+  assert(!replies.at(-1).content.includes('@everyone'));
+  await send('!acao Ataque alvo:1');
+  assert.equal(replies.at(-1).flags, 32768);
+  assert.match(JSON.stringify(replies.at(-1)), /Ataque/);
+  assert.match(JSON.stringify(replies.at(-1)), /Alvo 1/);
+  assert(calls.every((id) => id.startsWith('111111111111111111')));
+  assert.throws(() => parsePrefixCommand('!ficha outra-pessoa'), /sem argumentos/);
+});

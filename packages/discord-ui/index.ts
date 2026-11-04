@@ -273,9 +273,7 @@ export function formatHelp(topic: unknown = 'inicio', origin?: string): DiscordM
   const selected = helpTopics.some((t) => t.value === topic) ? topic : 'inicio';
   const fields =
     selected === 'expressoes'
-      ? diceExamples
-          .slice(0, 6)
-          .map((p) => ({ name: p.name, value: `\`${p.expression}\` — ${p.description}` }))
+      ? diceExamples.map((p) => ({ name: p.name, value: `\`${p.expression}\` — ${p.description}` }))
       : selected === 'privacidade'
         ? [
             {
@@ -296,7 +294,7 @@ export function formatHelp(topic: unknown = 'inicio', origin?: string): DiscordM
             {
               name: 'Fichas e árvores',
               value:
-                'Use o site para editar personagens e skills. Esta versão do bot não vincula automaticamente fichas à sua conta Discord.',
+                'O bot não vincula contas sem confirmação. Use !login, confirme a identidade no site e escolha a ficha ativa para !ficha, !skills e !acao.',
             },
           ]
         : [
@@ -310,9 +308,9 @@ export function formatHelp(topic: unknown = 'inicio', origin?: string): DiscordM
                 'Exemplo: `!rolar 1d20+5 alvo:15 | Percepção`. O texto depois de | nomeia a jogada.',
             },
             {
-              name: '3 · A mesa acompanha',
+              name: '3 · Sua conta e seu personagem',
               value:
-                'Seu comando e o resultado ficam no canal. Nenhuma mensagem original é apagada.',
+                'Use !login para vincular a conta; depois !ficha, !skills, !campanhas ou !acao Nome da ação. Respostas e rolagens aparecem no canal.',
             },
             {
               name: 'Leia cada dado',

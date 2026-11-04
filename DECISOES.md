@@ -25,3 +25,7 @@
 
 - 2026-11-04: a pedido do proprietário, comandos Discord passam a mensagens públicas por prefixo (!rolar/!r/!ajuda). O runtime não registra slash; remoção seletiva dos registros antigos requer credencial válida. A hospedagem HTTP Sites permanece para o site, e a conexão Gateway exige um serviço contínuo separado com Message Content Intent.
 - 2026-11-04: modificador fica junto dos valores dos dados; fórmulas repetidas são substituídas por descrição legível. Animações são breves e não atrasam ou alteram o resultado; som é opcional e compartilhado entre ficha e Dado Aberto.
+
+- O proprietário escolheu manter a hospedagem atual e vincular Discord à conta existente. Códigos só pedem vínculo; o dono confirma o ID no site antes de liberar consultas. A ficha ativa é selecionada explicitamente. Não se coleta senha ou Bot Token em comandos.
+- Personagens de campanha são cópias explícitas da ficha e árvore; dono edita, DM consulta e os demais recebem apenas identificação resumida. Revisões impedem sobrescrita silenciosa entre abas. Custos e efeitos continuam manuais.
+- Toda alteração solicitada passa por revisão, verificações e correção de falhas observadas antes da entrega; limites de verificação e operações externas pendentes são informados.

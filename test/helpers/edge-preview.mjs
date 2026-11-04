@@ -14,7 +14,9 @@ const originalFetch = globalThis.fetch;
 globalThis.fetch = (url, init) => {
   if (
     String(url).startsWith('https://discord.com/api/v10/') &&
-    init?.headers?.authorization === 'Bot edge-fixture-token'
+    ['Bot edge-fixture-token', 'Bot edge-fixture-token-for-discord-link'].includes(
+      init?.headers?.authorization,
+    )
   )
     return Promise.resolve(
       init?.method === 'DELETE'
@@ -37,7 +39,10 @@ const server = createServer(async (req, res) => {
     const url = new URL(req.url, 'http://127.0.0.1:' + port);
     if (url.pathname === '/signin-with-chatgpt' || url.pathname === '/signout-with-chatgpt') {
       res.writeHead(302, {
-        location: '/',
+        location: (() => {
+          const path = url.searchParams.get('return_to') || '/';
+          return path.startsWith('/') && !path.startsWith('//') ? path : '/';
+        })(),
         'set-cookie':
           url.pathname === '/signin-with-chatgpt'
             ? 'edge-test-user=preview-owner; Path=/; HttpOnly; SameSite=Lax'

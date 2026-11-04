@@ -6,6 +6,13 @@ export type CampaignParticipant = {
   role: CampaignRole;
   online: boolean;
   joinedAt: string;
+  character?: {
+    name: string;
+    revision: number;
+    updatedAt: string;
+    skills: number;
+    unlocked: number;
+  };
 };
 export type CampaignEvent = {
   id: string;
@@ -22,4 +29,11 @@ export type CampaignState = {
   events: CampaignEvent[];
   createdAt: string;
   revoked: boolean;
+};
+
+export const campaignStatusLabels: Record<CampaignStatus, string> = {
+  lobby: 'Aguardando jogadores',
+  active: 'Em andamento',
+  paused: 'Pausada',
+  closed: 'Encerrada',
 };

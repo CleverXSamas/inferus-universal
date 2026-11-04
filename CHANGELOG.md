@@ -1,5 +1,14 @@
 # Changelog
 
+## Revisão de campanhas e integração de personagem
+- Barra de campanhas reorganizada, estados em português e seletor sincronizado com a sala.
+- Navegação com URLs persistentes, histórico do navegador e retorno à tela após login.
+- Histórico de dados validado e erros de transporte apresentados sem mensagens de parser JSON.
+- Ficha com árvore própria e cópia vinculada ao participante da campanha; dono edita e DM consulta.
+- Revisões de documento evitam perda de edições concorrentes; dados completos não aparecem na lista pública de participantes.
+- Vínculo Discord confirmado no site, seleção de personagem e comandos públicos !login/!vincular/!ficha/!skills/!campanhas/!acao.
+- Migração aditiva de vínculos e códigos, sem apagar dados existentes; cache do bot limitado e ZIP Discloud reproduzível.
+
 ## Atualização de rolagens — 2026-11-04
 - Resultados simplificados: descrição legível e modificador junto dos dados, sem repetir a fórmula.
 - Animação curta e som compartilhado entre Dado Aberto e ficha; preferência local e suporte a movimento reduzido.

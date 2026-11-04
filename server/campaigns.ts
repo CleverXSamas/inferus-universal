@@ -1,3 +1,11 @@
+import {
+  readCharacter,
+  writeCharacter,
+  characterSummary,
+  type CharacterParticipant,
+} from '../packages/campaign-characters/index.js';
+import type { Sheet } from '../packages/sheet-engine/index.js';
+import { campaignStatusLabels } from '../packages/campaign-types/index.js';
 import { createHash, randomBytes } from 'node:crypto';
 import mysql from 'mysql2/promise';
 import type { Pool, PoolConnection, RowDataPacket } from 'mysql2/promise';
@@ -16,7 +24,7 @@ export type {
   CampaignEvent,
   CampaignParticipant,
 } from '../packages/campaign-types/index.js';
-type Participant = CampaignParticipant & { openId?: string };
+type Participant = CharacterParticipant & { openId?: string };
 type Session = { sessionHash: string; participantId: string; role: CampaignRole };
 type Internal = Omit<CampaignState, 'participants'> & {
   inviteHash: string;
@@ -41,7 +49,10 @@ function publicState(c: Internal): CampaignState {
     id: c.id,
     name: c.name,
     status: c.status,
-    participants: c.participants.map(({ openId, ...p }) => ({ ...p })),
+    participants: c.participants.map(({ openId, character, ...p }) => ({
+      ...p,
+      character: characterSummary(character),
+    })),
     events: c.events.slice(-80).map((e) => ({ ...e })),
     createdAt: c.createdAt,
     revoked: c.revoked,
@@ -86,6 +97,19 @@ export interface CampaignStore {
     participantId: string;
     accountLinked: boolean;
   }>;
+  character(
+    locator: string,
+    session: string,
+    participantId?: string,
+    openId?: string,
+  ): Promise<ReturnType<typeof readCharacter>>;
+  saveCharacter(
+    locator: string,
+    session: string,
+    sheet: Sheet | null,
+    revision: unknown,
+    openId?: string,
+  ): Promise<ReturnType<typeof readCharacter>>;
   event(locator: string, session: string, body: string, openId?: string): Promise<CampaignState>;
   status(
     locator: string,
@@ -136,6 +160,9 @@ class Store implements CampaignStore {
     await this.pool.query(
       `CREATE TABLE IF NOT EXISTS inferus_campaign_events (id VARCHAR(40) PRIMARY KEY,campaign_id VARCHAR(40) NOT NULL,kind VARCHAR(10) NOT NULL,author VARCHAR(60) NOT NULL,body VARCHAR(500) NOT NULL,created_at DATETIME(3) NOT NULL,INDEX(campaign_id,created_at))`,
     );
+    await this.pool.query(
+      `CREATE TABLE IF NOT EXISTS inferus_campaign_characters (participant_id VARCHAR(40) PRIMARY KEY,campaign_id VARCHAR(40) NOT NULL,document JSON NOT NULL,INDEX(campaign_id))`,
+    );
     // Separate table is an additive migration for installations with existing guest campaigns.
     await this.pool.query(
       `CREATE TABLE IF NOT EXISTS inferus_campaign_accounts (participant_id VARCHAR(40) PRIMARY KEY,campaign_id VARCHAR(40) NOT NULL,open_id VARCHAR(255) COLLATE utf8mb4_bin NOT NULL,UNIQUE(campaign_id,open_id),INDEX(open_id))`,
@@ -149,7 +176,7 @@ class Store implements CampaignStore {
     const r = rows[0];
     if (!r) throw new Error('Campanha ou convite inexistente.');
     const [ps] = await db.query<RowDataPacket[]>(
-      'SELECT p.*,a.open_id FROM inferus_campaign_participants p LEFT JOIN inferus_campaign_accounts a ON a.participant_id=p.id WHERE p.campaign_id=? ORDER BY p.joined_at,p.id',
+      'SELECT p.*,a.open_id,ch.document AS character_document FROM inferus_campaign_participants p LEFT JOIN inferus_campaign_accounts a ON a.participant_id=p.id LEFT JOIN inferus_campaign_characters ch ON ch.participant_id=p.id WHERE p.campaign_id=? ORDER BY p.joined_at,p.id',
       [r.id],
     );
     const [ss] = await db.query<RowDataPacket[]>(
@@ -174,6 +201,11 @@ class Store implements CampaignStore {
         online: Boolean(p.online),
         joinedAt: new Date(p.joined_at).toISOString(),
         openId: p.open_id ?? undefined,
+        character: p.character_document
+          ? typeof p.character_document === 'string'
+            ? JSON.parse(p.character_document)
+            : p.character_document
+          : undefined,
       })),
       sessions: ss.map((s) => ({
         sessionHash: s.session_hash,
@@ -189,7 +221,7 @@ class Store implements CampaignStore {
       })),
     };
   }
-  private async save(db: Db, c: Internal) {
+  private async save(db: Db, c: Internal, previousCharacters?: string) {
     await db.query('UPDATE inferus_campaigns SET status=?,revoked=?,invite_hash=? WHERE id=?', [
       c.status,
       c.revoked,
@@ -213,6 +245,16 @@ class Store implements CampaignStore {
           'INSERT INTO inferus_campaign_accounts (participant_id,campaign_id,open_id) VALUES (?,?,?)',
           [p.id, c.id, p.openId],
         );
+    }
+    const characters = c.participants.filter((p) => p.character).map((p) => [p.id, p.character]);
+    if (JSON.stringify(characters) !== previousCharacters) {
+      await db.query('DELETE FROM inferus_campaign_characters WHERE campaign_id=?', [c.id]);
+      for (const p of c.participants)
+        if (p.character)
+          await db.query(
+            'INSERT INTO inferus_campaign_characters (participant_id,campaign_id,document) VALUES (?,?,?)',
+            [p.id, c.id, JSON.stringify(p.character)],
+          );
     }
     for (const s of c.sessions)
       await db.query(
@@ -241,8 +283,11 @@ class Store implements CampaignStore {
     try {
       await db.beginTransaction();
       const c = await this.load(db, locator, true);
+      const before = JSON.stringify(
+        c.participants.filter((p) => p.character).map((p) => [p.id, p.character]),
+      );
       const result = fn(c);
-      if (write) await this.save(db, c);
+      if (write) await this.save(db, c, before);
       await db.commit();
       return result;
     } catch (e) {
@@ -302,7 +347,12 @@ class Store implements CampaignStore {
         db.release();
       }
     } else this.memory.set(c.id, c);
-    return { state: publicState(c), inviteToken: invite, sessionToken: session };
+    return {
+      state: publicState(c),
+      inviteToken: invite,
+      sessionToken: session,
+      participantId: p.id,
+    };
   }
   async join(invite: string, name: string, openId?: string) {
     return this.run(invite, true, (c) => {
@@ -328,7 +378,7 @@ class Store implements CampaignStore {
         participantId: p.id,
         role: p.role,
       });
-      return { state: publicState(c), sessionToken: session, role: p.role };
+      return { state: publicState(c), sessionToken: session, participantId: p.id, role: p.role };
     });
   }
   async get(locator: string, session: string, openId?: string) {
@@ -340,6 +390,24 @@ class Store implements CampaignStore {
         participantId: p.id,
         accountLinked: Boolean(p.openId),
       };
+    });
+  }
+  async character(locator: string, session: string, participantId?: string, openId?: string) {
+    return this.run(locator, false, (c) =>
+      readCharacter(c.participants, auth(c, session, openId), participantId),
+    );
+  }
+  async saveCharacter(
+    locator: string,
+    session: string,
+    sheet: Sheet | null,
+    revision: unknown,
+    openId?: string,
+  ) {
+    return this.run(locator, true, (c) => {
+      const viewer = auth(c, session, openId);
+      writeCharacter(viewer, sheet, revision);
+      return readCharacter(c.participants, viewer);
     });
   }
   async event(locator: string, session: string, body: string, openId?: string) {
@@ -357,7 +425,7 @@ class Store implements CampaignStore {
       if (!['lobby', 'active', 'paused', 'closed'].includes(status))
         throw new Error('Estado de campanha inválido.');
       c.status = status;
-      record(c, 'status', 'DM', `Sessão: ${status}.`);
+      record(c, 'status', 'DM', `Sessão: ${campaignStatusLabels[status]}.`);
       return publicState(c);
     });
   }

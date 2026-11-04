@@ -52,7 +52,11 @@ export function SimpleRollResult({
               <div className="audit" key={i}>
                 <div className="audit-label">
                   {result.groups.length === 1 ? 'Dados' : describeDice(g.raw)}
-                  <span>{result.mode === 'success' ? g.successes : g.subtotal}</span>
+                  <span>
+                    {result.mode === 'success'
+                      ? (g.raw.startsWith('-') ? -1 : 1) * (g.successes ?? 0)
+                      : g.subtotal}
+                  </span>
                 </div>
                 <div className="dice-row">
                   {g.dice.map((d) => (
