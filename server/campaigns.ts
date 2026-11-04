@@ -1,3 +1,4 @@
+import { visibleTabletop, updateTabletop, type Tabletop } from '../packages/tabletop/index.js';
 import {
   readCharacter,
   writeCharacter,
@@ -27,6 +28,7 @@ export type {
 type Participant = CharacterParticipant & { openId?: string };
 type Session = { sessionHash: string; participantId: string; role: CampaignRole };
 type Internal = Omit<CampaignState, 'participants'> & {
+  tabletop?: Tabletop;
   inviteHash: string;
   participants: Participant[];
   sessions: Session[];
@@ -76,6 +78,7 @@ function auth(c: Internal, session: string, openId?: string, dm = false) {
   return p;
 }
 export interface CampaignStore {
+  tabletop(locator: string, session: string, openId?: string, action?: unknown): Promise<Tabletop>;
   kind: 'memory' | 'mysql';
   create(
     name: string,
@@ -149,6 +152,9 @@ class Store implements CampaignStore {
   private async init() {
     if (!this.pool) return;
     await this.pool.query(
+      'CREATE TABLE IF NOT EXISTS inferus_campaign_tabletops (campaign_id VARCHAR(40) PRIMARY KEY,document JSON NOT NULL)',
+    );
+    await this.pool.query(
       `CREATE TABLE IF NOT EXISTS inferus_campaigns (id VARCHAR(40) PRIMARY KEY,name VARCHAR(100) NOT NULL,invite_hash CHAR(64) UNIQUE NOT NULL,status VARCHAR(12) NOT NULL,revoked BOOLEAN NOT NULL DEFAULT FALSE,created_at DATETIME(3) NOT NULL)`,
     );
     await this.pool.query(
@@ -187,7 +193,13 @@ class Store implements CampaignStore {
       'SELECT * FROM inferus_campaign_events WHERE campaign_id=? ORDER BY created_at DESC,id DESC LIMIT 80',
       [r.id],
     );
+    const [boards] = await db.query<RowDataPacket[]>(
+      'SELECT document FROM inferus_campaign_tabletops WHERE campaign_id=?',
+      [r.id],
+    );
+    const board = boards[0]?.document;
     return {
+      tabletop: typeof board === 'string' ? JSON.parse(board) : board,
       id: r.id,
       name: r.name,
       inviteHash: r.invite_hash,
@@ -222,6 +234,11 @@ class Store implements CampaignStore {
     };
   }
   private async save(db: Db, c: Internal, previousCharacters?: string) {
+    if (c.tabletop)
+      await db.query(
+        'INSERT INTO inferus_campaign_tabletops (campaign_id,document) VALUES (?,?) ON DUPLICATE KEY UPDATE document=VALUES(document)',
+        [c.id, JSON.stringify(c.tabletop)],
+      );
     await db.query('UPDATE inferus_campaigns SET status=?,revoked=?,invite_hash=? WHERE id=?', [
       c.status,
       c.revoked,
@@ -296,6 +313,14 @@ class Store implements CampaignStore {
     } finally {
       db.release();
     }
+  }
+  async tabletop(locator: string, session: string, openId?: string, action?: unknown) {
+    return this.run(locator, action !== undefined, (c) => {
+      const actor = auth(c, session, openId);
+      if (action !== undefined)
+        c.tabletop = updateTabletop(c.tabletop, actor, c.participants, c.status, action);
+      return visibleTabletop(c.tabletop, actor, c.participants);
+    });
   }
   async create(name: string, dmName: string, openId?: string) {
     const n = clean(name, 100),

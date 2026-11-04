@@ -1,3 +1,4 @@
+import { TabletopError } from '../packages/tabletop/index.js';
 import { CharacterError } from '../packages/campaign-characters/index.js';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { readFile } from 'node:fs/promises';
@@ -158,6 +159,8 @@ export function createApplication(options: { databaseUrl?: string } = {}) {
               200,
               await campaigns.join(String(b.inviteToken ?? ''), b.name, openId),
             );
+          case '/api/campaigns/tabletop':
+            return json(res, 200, await campaigns.tabletop(locator, session, openId, b.action));
           case '/api/campaigns/state':
             return json(res, 200, await campaigns.get(locator, session, openId));
           case '/api/campaigns/character':
@@ -231,7 +234,7 @@ export function createApplication(options: { databaseUrl?: string } = {}) {
       res.end(req.method === 'HEAD' ? undefined : data);
     } catch (e) {
       const status =
-        e instanceof HttpError || e instanceof CharacterError
+        e instanceof HttpError || e instanceof CharacterError || e instanceof TabletopError
           ? e.status
           : e instanceof Error && e.message === 'Faça login para continuar.'
             ? 401

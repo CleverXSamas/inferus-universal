@@ -81,3 +81,11 @@ A versão gratuita adaptada está publicada em **https://inferus-universal.penes
 
 
 O [guia de deploy no Railway](docs/DEPLOYMENT.md) descreve os serviços web, bot e MySQL, as referências privadas e o armazenamento dos segredos. Os arquivos `deploy/railway.web.toml` e `deploy/railway.bot.toml` configuram build, comandos de inicialização e reinício. Em produção, o servidor exige banco, origem HTTPS e OAuth configurados. `npm run bot:check` valida o token e a aplicação Discord sem registrar comandos.
+
+### Mesa virtual e ficha universal
+
+Em Campanha, use **Abrir mesa virtual** para navegar no mapa e colocar personagens vinculados. O mestre configura a cena e adiciona NPCs; cada jogador controla seu personagem. Selecione um token para abrir ficha/skills ou mover com setas. A remoção do token preserva a ficha.
+
+Na ficha, informe livremente sistema e conceito e use ☆ para fixar os campos mais usados em **Modo jogo → Em jogo**.
+
+Para executar também os testes de persistência MySQL: `npm run test:full` (Docker; banco temporário). Referências, análise REA e limites do VTT: [docs/REFERENCES-VTT.md](docs/REFERENCES-VTT.md).

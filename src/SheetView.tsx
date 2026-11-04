@@ -239,6 +239,14 @@ function CharacterField({
     <div className={`character-field kind-${f.type}`}>
       <div className="character-field-heading">
         <span>{fieldTypes[f.type].label}</span>
+        <button
+          className="icon-btn"
+          aria-label={`${f.pinned ? 'Desafixar' : 'Fixar'} ${f.label}`}
+          aria-pressed={!!f.pinned}
+          onClick={() => onUpdate({ pinned: !f.pinned })}
+        >
+          {f.pinned ? '★' : '☆'}
+        </button>
         {editing && (
           <button className="icon-btn" aria-label={`Remover campo ${f.label}`} onClick={onDelete}>
             <Icon name="close" size={13} />
@@ -1065,6 +1073,63 @@ export function SheetView({
                       Adicionar atributos
                     </button>
                   </div>
+                )}
+                <section className="sheet-universal-profile" aria-label="Identidade do sistema">
+                  {editing ? (
+                    <>
+                      <label>
+                        Sistema de RPG
+                        <input
+                          placeholder="Seu sistema, suas regras"
+                          maxLength={160}
+                          value={sheet.system ?? ''}
+                          onChange={(e) => change({ ...sheet, system: e.target.value })}
+                        />
+                      </label>
+                      <label>
+                        Conceito do personagem
+                        <input
+                          placeholder="Quem você é nesta história?"
+                          maxLength={160}
+                          value={sheet.concept ?? ''}
+                          onChange={(e) => change({ ...sheet, concept: e.target.value })}
+                        />
+                      </label>
+                    </>
+                  ) : (
+                    <>
+                      <span className="eyebrow">{sheet.system || 'FICHA UNIVERSAL'}</span>
+                      {sheet.concept && <p>{sheet.concept}</p>}
+                    </>
+                  )}
+                </section>
+                {!editing && sheet.sections.some((s) => s.fields.some((f) => f.pinned)) && (
+                  <section className="character-section sheet-quickplay" aria-label="Em jogo">
+                    <div className="character-section-heading">
+                      <div>
+                        <span className="eyebrow">EM JOGO</span>
+                        <h2>O essencial, à mão</h2>
+                        <p>Seus campos fixados. Os valores são os mesmos da ficha.</p>
+                      </div>
+                    </div>
+                    <div className="character-field-grid">
+                      {sheet.sections.flatMap((s) =>
+                        s.fields
+                          .filter((f) => f.pinned)
+                          .map((f) => (
+                            <CharacterField
+                              key={f.id}
+                              field={f}
+                              editing={false}
+                              value={calculated.values[f.id]}
+                              onUpdate={(patch) => updateField(s.id, f.id, patch)}
+                              onDelete={() => {}}
+                              onRoll={() => playAction(f)}
+                            />
+                          )),
+                      )}
+                    </div>
+                  </section>
                 )}
                 {sheet.sections.map((s, si) => (
                   <section

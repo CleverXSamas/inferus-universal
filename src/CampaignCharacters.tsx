@@ -18,7 +18,7 @@ type View = {
   updatedAt: string | null;
 };
 type Access = { campaignId: string; sessionToken: string; inviteToken: string };
-function CharacterWindow({
+export function CharacterWindow({
   participant,
   access,
   onClose,

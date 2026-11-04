@@ -190,7 +190,7 @@ code {
   min-height: 100vh;
   display: flex;
 }
-aside {
+.app > aside {
   flex: 0 0 238px;
   width: 238px;
   padding: 38px 22px 24px;
@@ -1769,7 +1769,7 @@ footer a {
   }
 }
 @media (max-width: 1200px) {
-  aside {
+  .app > aside {
     flex-basis: 205px;
     width: 205px;
     padding-left: 16px;
@@ -1825,7 +1825,7 @@ footer a {
   }
 }
 @media (max-width: 960px) {
-  aside {
+  .app > aside {
     flex-basis: 180px;
     width: 180px;
     padding: 30px 12px 20px;
@@ -1916,7 +1916,7 @@ footer a {
   .app {
     display: block;
   }
-  aside {
+  .app > aside {
     position: static;
     height: auto;
     width: auto;

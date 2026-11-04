@@ -1,3 +1,4 @@
+import { visibleTabletop, updateTabletop, type Tabletop } from '../packages/tabletop/index.js';
 import {
   readCharacter,
   writeCharacter,
@@ -17,6 +18,7 @@ import { type D1Database, ApiError, hash, token, id, clean } from './types.js';
 type Participant = CharacterParticipant & { openId?: string };
 type Campaign = Omit<CampaignState, 'participants'> & {
   participants: Participant[];
+  tabletop?: Tabletop;
   inviteHash: string;
   sessions: { sessionHash: string; participantId: string }[];
 };
@@ -75,6 +77,15 @@ export function createEdgeCampaignStore(db: D1Database) {
     throw new ApiError(409, 'A mesa recebeu muitas alterações simultâneas. Tente novamente.');
   }
   return {
+    async tabletop(locator: string, session: string, owner?: string, action?: unknown) {
+      const sessionHash = await hash(session);
+      return run(locator, action !== undefined, (c) => {
+        const actor = auth(c, sessionHash, owner);
+        if (action !== undefined)
+          c.tabletop = updateTabletop(c.tabletop, actor, c.participants, c.status, action);
+        return visibleTabletop(c.tabletop, actor, c.participants);
+      });
+    },
     async create(name: unknown, dmName: unknown, owner?: string) {
       const n = clean(name, 100),
         d = clean(dmName, 60);

@@ -11,9 +11,17 @@ export type Field = {
   integer?: boolean;
   formula?: string;
   expression?: string;
+  pinned?: boolean;
 };
 export type Section = { id: string; label: string; fields: Field[] };
-export type Sheet = { id: string; name: string; sections: Section[]; skillTree?: TreeDocument };
+export type Sheet = {
+  id: string;
+  name: string;
+  sections: Section[];
+  system?: string;
+  concept?: string;
+  skillTree?: TreeDocument;
+};
 const identifier = /^[a-z][a-z0-9_]{0,39}$/;
 export function validateSheet(sheet: Sheet) {
   if (
@@ -27,6 +35,12 @@ export function validateSheet(sheet: Sheet) {
     sheet.sections.length > 300
   )
     throw new Error('Ficha inválida.');
+  if (
+    [sheet.system, sheet.concept].some(
+      (v) => v !== undefined && (typeof v !== 'string' || v.length > 160),
+    )
+  )
+    throw new Error('Sistema ou conceito inválido.');
   const ids = new Set<string>(),
     sections = new Set<string>();
   for (const section of sheet.sections) {
@@ -44,6 +58,8 @@ export function validateSheet(sheet: Sheet) {
       if (!f || !identifier.test(f.id) || ids.has(f.id))
         throw new Error(`ID inválido ou duplicado: ${f?.id}`);
       ids.add(f.id);
+      if (f.pinned !== undefined && typeof f.pinned !== 'boolean')
+        throw new Error('Favorito inválido.');
       if (
         !['number', 'text', 'boolean', 'resource', 'list', 'calculated', 'action'].includes(
           f.type,

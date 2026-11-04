@@ -1,3 +1,4 @@
+import { CampaignTabletop } from './CampaignTabletop';
 import { CampaignJournal } from './CampaignJournal';
 import { CampaignCharacters } from './CampaignCharacters';
 import { useEffect, useRef, useState } from 'react';
@@ -40,6 +41,7 @@ async function request<T = any>(path: string, payload?: unknown, signal?: AbortS
   });
 }
 export function CampaignView() {
+  const [showTabletop, setShowTabletop] = useState(false);
   const { user, loginUrl, loading: accountLoading } = useAccount(),
     [access, setAccess] = useState(initialAccess),
     [state, setState] = useState<State | null>(null),
@@ -514,6 +516,21 @@ export function CampaignView() {
         </div>
       ) : (
         <>
+          <div className="campaign-scene-toggle">
+            <button aria-pressed={showTabletop} onClick={() => setShowTabletop((v) => !v)}>
+              {showTabletop ? 'Recolher mesa virtual' : 'Abrir mesa virtual'}
+            </button>
+            <span>Mapa compartilhado · tokens · fichas</span>
+          </div>
+          {showTabletop && (
+            <CampaignTabletop
+              key={state.id}
+              state={state}
+              participantId={participantId}
+              role={role ?? 'player'}
+              access={payload()}
+            />
+          )}
           <section className="campaign-overview card" aria-label="Resumo da campanha">
             <div>
               <span className="eyebrow">

@@ -1,3 +1,4 @@
+import { TabletopError } from '../packages/tabletop/index.js';
 import { discordAccounts } from './discord-accounts.js';
 import { CharacterError } from '../packages/campaign-characters/index.js';
 import { roll, PRESETS } from '../packages/dice-core/index.js';
@@ -233,6 +234,8 @@ export default {
             }
             case '/api/campaigns/join':
               return json(await campaigns.join(String(b.inviteToken ?? ''), b.name, user?.id));
+            case '/api/campaigns/tabletop':
+              return json(await campaigns.tabletop(locator, session, user?.id, b.action));
             case '/api/campaigns/state':
               return json(await campaigns.get(locator, session, user?.id));
             case '/api/campaigns/character':
@@ -289,7 +292,7 @@ export default {
         },
       );
     } catch (e) {
-      if (e instanceof ApiError || e instanceof CharacterError)
+      if (e instanceof ApiError || e instanceof CharacterError || e instanceof TabletopError)
         return json({ error: e.message }, e.status);
       if (
         e instanceof Error &&
