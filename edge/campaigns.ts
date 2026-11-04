@@ -188,6 +188,11 @@ export function createEdgeCampaignStore(db: D1Database) {
       return run(locator, true, (c) => {
         const p = auth(c, sessionHash, owner),
           text = clean(body, 500);
+        if (c.status === 'closed')
+          throw new ApiError(
+            409,
+            'A campanha está encerrada. Peça ao mestre para reabrir a sessão.',
+          );
         if (!text) throw new ApiError(400, 'A mensagem não pode estar vazia.');
         record(c, 'message', p.name, text);
         return publicState(c);
@@ -199,6 +204,7 @@ export function createEdgeCampaignStore(db: D1Database) {
         auth(c, sessionHash, owner, true);
         if (!['lobby', 'active', 'paused', 'closed'].includes(status))
           throw new ApiError(400, 'Estado de campanha inválido.');
+        if (c.status === status) return publicState(c);
         c.status = status;
         record(c, 'status', 'DM', `Sessão: ${campaignStatusLabels[status]}.`);
         return publicState(c);

@@ -1,3 +1,4 @@
+import { DiscordCommandGuide } from './DiscordCommandGuide';
 import { DiscordAccountLink } from './DiscordAccountLink';
 import { requestJSON } from './http';
 import { useEffect, useRef, useState } from 'react';
@@ -122,7 +123,7 @@ export function DiscordView() {
             motor da sua mesa, no Discord.
           </p>
           <div className="bot-feature-tags">
-            <span>!rolar + !ajuda</span>
+            <span>Dados · personagens · campanhas</span>
             <span>Resultados auditáveis</span>
             <span>Comando visível na conversa</span>
           </div>
@@ -137,6 +138,7 @@ export function DiscordView() {
         </div>
       </section>
       <DiscordAccountLink />
+      <DiscordCommandGuide />
       <div className="bot-workspace-grid">
         <section className="bot-playground" ref={builder}>
           <div className="bot-section-heading">
@@ -168,7 +170,7 @@ export function DiscordView() {
               />
             </label>
             <div className="bot-quick-presets" aria-label="Exemplos de dados">
-              {diceExamples.slice(0, 6).map((p) => (
+              {diceExamples.map((p) => (
                 <button
                   className="quiet"
                   type="button"
@@ -530,8 +532,9 @@ export function DiscordView() {
             <p>
               Use !login para abrir o site, vincule seu Discord e escolha o personagem ativo. !ficha
               mostra um resumo, !skills lista desbloqueios, !acao rola uma ação cadastrada e
-              !campanhas consulta suas mesas. O acesso só é liberado depois da confirmação da
-              identidade no site.
+              !campanhas lista suas mesas. Use !campanha usar Nome da campanha para escolher, !mesa
+              para participantes e !diario para registros. O mestre controla a sessão com !sessao. O
+              acesso só é liberado depois da confirmação da identidade no site.
             </p>
           </details>
           <details>

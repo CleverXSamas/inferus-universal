@@ -189,9 +189,28 @@ test('bot consulta identidade vinculada, skills, campanhas e ação da ficha sem
       calls.push(id);
       return sheet;
     },
+    campaign: async () => {
+      throw new Error('unused');
+    },
+    session: async () => {
+      throw new Error('unused');
+    },
+    note: async () => {
+      throw new Error('unused');
+    },
     campaigns: async (id) => {
       calls.push(id);
-      return [{ name: 'Campanha @everyone', status: 'active', participants: 2 }];
+      return [
+        {
+          id: 'camp_abc',
+          name: 'Campanha @everyone',
+          status: 'active',
+          participants: 2,
+          role: 'dm',
+          character: sheet.name,
+          selected: true,
+        },
+      ];
     },
   });
   const replies: any[] = [];
@@ -210,15 +229,15 @@ test('bot consulta identidade vinculada, skills, campanhas e ação da ficha sem
     });
   };
   await send('!login');
-  assert.match(replies.at(-1).content, /https:\/\/inferus.example\/discord/);
+  assert.match(JSON.stringify(replies.at(-1)), /https:\/\/inferus.example\/discord/);
   await send('!vincular ' + 'x'.repeat(32));
-  assert.match(replies.at(-1).content, /Confirme/);
+  assert.match(JSON.stringify(replies.at(-1)), /Confirme/);
   await send('!ficha');
-  assert.match(replies.at(-1).content, /Heroína/);
+  assert.match(JSON.stringify(replies.at(-1)), /Heroína/);
   await send('!skills');
-  assert(replies.at(-1).content.includes(sheet.skillTree.skills[0].name));
+  assert(JSON.stringify(replies.at(-1)).includes(sheet.skillTree.skills[0].name));
   await send('!campanhas');
-  assert(!replies.at(-1).content.includes('@everyone'));
+  assert(!JSON.stringify(replies.at(-1)).includes('@everyone'));
   await send('!acao Ataque alvo:1');
   assert.equal(replies.at(-1).flags, 32768);
   assert.match(JSON.stringify(replies.at(-1)), /Ataque/);

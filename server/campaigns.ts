@@ -414,6 +414,8 @@ class Store implements CampaignStore {
     return this.run(locator, true, (c) => {
       const p = auth(c, session, openId),
         text = clean(body, 500);
+      if (c.status === 'closed')
+        throw new Error('A campanha está encerrada. Peça ao mestre para reabrir a sessão.');
       if (!text) throw new Error('A mensagem não pode estar vazia.');
       record(c, 'message', p.name, text);
       return publicState(c);
@@ -424,6 +426,7 @@ class Store implements CampaignStore {
       auth(c, session, openId, true);
       if (!['lobby', 'active', 'paused', 'closed'].includes(status))
         throw new Error('Estado de campanha inválido.');
+      if (c.status === status) return publicState(c);
       c.status = status;
       record(c, 'status', 'DM', `Sessão: ${campaignStatusLabels[status]}.`);
       return publicState(c);

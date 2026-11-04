@@ -69,7 +69,8 @@ test('convite não permite assumir DM; revogação preserva a sala', async ({ br
     await a.getByLabel('Nome da campanha').fill('Mesa segura');
     await a.getByRole('button', { name: 'Criar como DM' }).click();
     await expect(a.getByRole('heading', { name: 'Mesa segura' })).toBeVisible();
-    const invite = a.url();
+    await a.getByText('Convites e controles do mestre', { exact: true }).click();
+    const invite = await a.getByLabel('Link de convite', { exact: true }).inputValue();
     const b = await player.newPage();
     await b.goto(invite);
     await b.getByLabel('Seu nome de mesa').fill('Guia');
@@ -80,12 +81,12 @@ test('convite não permite assumir DM; revogação preserva a sala', async ({ br
     await expect(b.getByRole('heading', { name: 'Mesa segura' })).toBeVisible();
     await expect(b.getByRole('button', { name: 'Iniciar sessão' })).toHaveCount(0);
     await a.getByRole('button', { name: 'Revogar convite' }).click();
-    await expect(a.getByText('Convite revogado. Os membros mantêm acesso à mesa.')).toBeVisible();
+    await a.getByRole('dialog').getByRole('button', { name: 'Confirmar', exact: true }).click();
+    await expect(a.getByText('Convite revogado. Quem já participa mantém o acesso.')).toBeVisible();
     await b.reload();
     await expect(b.getByRole('heading', { name: 'Mesa segura' })).toBeVisible();
     await a.getByRole('button', { name: 'Gerar novo convite' }).click();
-    await expect(a.locator('.invite-box')).toContainText('LINK PRIVADO');
-    expect(a.url()).not.toEqual(invite);
+    await expect(a.getByLabel('Link de convite', { exact: true })).not.toHaveValue(invite);
     await a.reload();
     await expect(a.getByRole('heading', { name: 'Mesa segura' })).toBeVisible();
   } finally {
@@ -112,7 +113,9 @@ test('campanha de convidado pode ser vinculada com sua sessão original', async 
     const b = await second.newPage();
     await b.goto('/');
     await b.getByRole('button', { name: 'Campanha', exact: true }).click();
-    await b.getByLabel('Abrir campanha da conta').selectOption({ label: 'Campanha da conta' });
+    await b
+      .getByLabel('Abrir campanha da conta')
+      .selectOption({ label: 'Campanha da conta · Aguardando jogadores' });
     await expect(b.getByRole('heading', { name: 'Campanha da conta' })).toBeVisible();
     await expect(b.getByRole('button', { name: 'Iniciar sessão' })).toBeVisible();
     await b.getByRole('button', { name: 'Sair', exact: true }).click();

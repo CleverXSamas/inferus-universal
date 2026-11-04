@@ -1,5 +1,13 @@
 # Changelog
 
+## Campanha e comandos refinados
+- Mesa reorganizada com resumo da sessão, fichas por participante, entrada por convite e controles do mestre com confirmação.
+- Diário com filtros, busca, datas e indicação de novos registros; encerramento impede novas mensagens até reabrir.
+- Bot permite selecionar campanha, consultar participantes/diário, registrar mensagens e controlar sessão com permissão de mestre.
+- Ajuda por assunto, cartões, erros contextuais, paginação de listas e catálogo compartilhado de comandos no site.
+- Links abrem a campanha correta; nomes duplicados exigem ID; cópia de IDs e ações preserva caracteres literais.
+- Testes de controle de acesso, remoção de membros, sincronização bot/site, navegação e telas estreitas.
+
 ## Revisão de campanhas e integração de personagem
 - Barra de campanhas reorganizada, estados em português e seletor sincronizado com a sala.
 - Navegação com URLs persistentes, histórico do navegador e retorno à tela após login.

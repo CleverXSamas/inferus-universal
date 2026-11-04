@@ -8,10 +8,15 @@ INFERUS BOT — DISCLOUD
    Para atualizar um bot existente, preserve suas variáveis privadas da hospedagem.
 4. No Discord, use !login. Entre no site atual, gere o código de vínculo,
    envie !vincular CODIGO ao bot e confirme a identidade no site.
-5. Escolha o personagem ativo na página Discord do site. Pode ser uma ficha
-   salva na conta ou seu personagem de campanha, com a árvore integrada.
-6. Comandos: !rolar 1d20+5, !ajuda, !ficha, !skills, !campanhas,
-   !acao Ataque alvo:15. Resumos e rolagens aparecem no canal.
+5. Escolha o personagem ativo na página Discord do site ou use !campanhas e
+   !campanha usar Nome da campanha (também aceita o ID). A seleção é pessoal
+   e passa a usar a ficha e árvore desse personagem em todos os canais.
+6. Comandos: !rolar 1d20+5, !ficha, !skills, !acoes, !acao Ataque alvo:15.
+   Campanhas: !campanha, !mesa, !diario, !anotar texto.
+   Mestre: !sessao iniciar, pausar, retomar ou encerrar.
+   Listas: !campanhas 2, !skills 2, !acoes 2, !diario 2.
+   Ajuda: !ajuda campanhas e !ajuda personagem.
+   Comandos, resumos, diário consultado e rolagens aparecem no canal.
 
 Remoção de slash legado: npm run remove-slash. DISCORD_GUILD_ID é opcional
 para remover também os registros específicos nesse servidor. Não é executada

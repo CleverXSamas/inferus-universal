@@ -31,7 +31,8 @@ test('Worker: campanha restaura após recarga e preserva papéis', async ({ page
   await page.getByLabel('Nome da campanha').fill('Mesa D1');
   await page.getByRole('button', { name: 'Criar como DM' }).click();
   await expect(page.getByRole('heading', { name: 'Mesa D1' })).toBeVisible();
-  const invite = page.url();
+  await page.getByText('Convites e controles do mestre', { exact: true }).click();
+  const invite = await page.getByLabel('Link de convite', { exact: true }).inputValue();
   const context = await browser.newContext();
   try {
     const guest = await context.newPage();
@@ -45,7 +46,9 @@ test('Worker: campanha restaura após recarga e preserva papéis', async ({ page
     await expect(guest.getByRole('button', { name: 'Iniciar sessão' })).toHaveCount(0);
     await page.reload();
     await expect(page.getByRole('heading', { name: 'Mesa D1' })).toBeVisible();
+    await page.getByText('Convites e controles do mestre', { exact: true }).click();
     await page.getByRole('button', { name: 'Revogar convite' }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Confirmar', exact: true }).click();
     await guest.reload();
     await expect(guest.getByRole('heading', { name: 'Mesa D1' })).toBeVisible();
   } finally {

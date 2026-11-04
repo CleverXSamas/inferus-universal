@@ -172,8 +172,9 @@ export function DiscordAccountLink() {
                 {status.pending.discordId}. Confirme somente se esta é sua conta.
               </p>
               <p>
-                Ao confirmar, você permite consultas às suas campanhas e ao personagem ativo
-                escolhido abaixo. Resumos e rolagens ficam públicos no canal.
+                Ao confirmar, você permite consultar suas campanhas e seu personagem, registrar
+                mensagens no diário e, nas mesas em que é mestre, controlar a sessão pelo bot.
+                Comandos, resumos, registros consultados e rolagens ficam públicos no canal.
               </p>
               <button
                 disabled={busy}
@@ -199,7 +200,7 @@ export function DiscordAccountLink() {
                   onChange={(e) => setChoice(e.target.value)}
                 >
                   <option value="" disabled>
-                    Escolha uma ficha ou personagem de campanha
+                    Escolha uma ficha ou campanha
                   </option>
                   {status.choices.map((c) => (
                     <option key={c.key} value={c.key}>
@@ -213,12 +214,14 @@ export function DiscordAccountLink() {
               </button>
               {!status.choices.length && (
                 <p className="help-text">
-                  Salve uma ficha na conta ou vincule um personagem à campanha para aparecer aqui.
+                  Salve uma ficha na conta ou participe de uma campanha para aparecer aqui.
                 </p>
               )}
               <p className="help-text">
-                !ficha · !skills · !acao Nome da ação · !campanhas. O bot usa a versão salva no
-                site; rascunhos locais permanecem privados.
+                !ficha · !skills · !acoes · !campanha · !mesa · !diario. A seleção é pessoal: vale
+                em todos os canais em que você usa o bot. Selecionar uma ficha avulsa sai do
+                contexto de campanha; use !campanha usar Nome para voltar à mesa. O bot usa a versão
+                salva no site.
               </p>
             </form>
           )}

@@ -1,8 +1,9 @@
+import { CampaignJournal } from './CampaignJournal';
 import { CampaignCharacters } from './CampaignCharacters';
 import { useEffect, useRef, useState } from 'react';
 import { useAccount } from './AuthPanel';
 import { requestJSON, RequestError } from './http';
-import { Icon } from './editor-shared';
+import { Icon, Modal } from './editor-shared';
 import { campaignStatusLabels, type CampaignState } from '../packages/campaign-types';
 type Role = 'dm' | 'player';
 type State = CampaignState;
@@ -13,6 +14,9 @@ function initialAccess(): Access {
   try {
     saved = JSON.parse(localStorage.getItem(key) || 'null');
   } catch {}
+  const requested = new URLSearchParams(location.search).get('mesa');
+  if (requested && /^[a-zA-Z0-9_-]{1,80}$/.test(requested) && saved?.locator !== requested)
+    return { locator: requested, sessionToken: '', inviteToken: '' };
   let invite = '';
   try {
     invite = decodeURIComponent(location.pathname.match(/^\/campaign\/([^/]+)/)?.[1] || '');
@@ -36,7 +40,7 @@ async function request<T = any>(path: string, payload?: unknown, signal?: AbortS
   });
 }
 export function CampaignView() {
-  const { user } = useAccount(),
+  const { user, loginUrl, loading: accountLoading } = useAccount(),
     [access, setAccess] = useState(initialAccess),
     [state, setState] = useState<State | null>(null),
     [role, setRole] = useState<Role | null>(null),
@@ -51,6 +55,18 @@ export function CampaignView() {
     [notice, setNotice] = useState(''),
     [creating, setCreating] = useState(false),
     [loadError, setLoadError] = useState('');
+  const [roomPanel, setRoomPanel] = useState<'party' | 'journal'>('party');
+  const inviteControls = useRef<HTMLDetailsElement>(null);
+  const [retry, setRetry] = useState(0),
+    [entryMode, setEntryMode] = useState<'create' | 'join'>('create'),
+    [inviteInput, setInviteInput] = useState('');
+  const [confirmation, setConfirmation] = useState<{
+    title: string;
+    body: string;
+    action: () => Promise<void>;
+  } | null>(null);
+  const context = useRef(access.locator);
+  context.current = access.locator;
   const mounted = useRef(true),
     owner = useRef(user?.id),
     working = useRef(false),
@@ -63,9 +79,10 @@ export function CampaignView() {
     };
   }, []);
   const api = async <T = any,>(path: string, data?: unknown, signal?: AbortSignal): Promise<T> => {
-    const who = owner.current;
+    const who = owner.current,
+      where = context.current;
     const out = await request<T>(path, data, signal);
-    if (!mounted.current || who !== owner.current)
+    if (!mounted.current || who !== owner.current || where !== context.current)
       throw new DOMException('Sessão alterada.', 'AbortError');
     return out;
   };
@@ -81,6 +98,7 @@ export function CampaignView() {
     setError('');
     setLoadError('');
     setNotice('');
+    setConfirmation(null);
     const controller = new AbortController();
     if (user)
       api<State[]>('/api/campaigns', undefined, controller.signal)
@@ -129,7 +147,7 @@ export function CampaignView() {
       controller.abort();
       window.clearTimeout(timer);
     };
-  }, [access.locator, access.sessionToken, user?.id]);
+  }, [access.locator, access.sessionToken, user?.id, retry]);
   const remember = (next: Access) => {
     setAccess(next);
     try {
@@ -163,12 +181,16 @@ export function CampaignView() {
     setRole(out.role || 'dm');
     setParticipantId(out.participantId || '');
     setLinked(Boolean(user));
-    if (invite) history.replaceState({}, '', `/campaign/${encodeURIComponent(invite)}`);
-    if (user)
-      api('/api/campaigns')
-        .then(setCampaigns)
-        .catch(() => {});
+    history.replaceState({}, '', `/campanhas?mesa=${encodeURIComponent(out.state.id)}`);
   };
+  useEffect(() => {
+    if (!user || !state?.id) return;
+    const controller = new AbortController();
+    void api<State[]>('/api/campaigns', undefined, controller.signal)
+      .then(setCampaigns)
+      .catch(() => {});
+    return () => controller.abort();
+  }, [user?.id, state?.id]);
   // Creation returns the raw invitation once; preserve it for sharing on this device.
   const createWithInvite = () =>
     act(async () => {
@@ -183,7 +205,38 @@ export function CampaignView() {
       ),
     );
   const changeStatus = (status: State['status']) =>
-    act(async () => setState(await api('/api/campaigns/status', { ...payload(), status })));
+    act(async () => {
+      setState(await api('/api/campaigns/status', { ...payload(), status }));
+      setNotice(`Sessão: ${campaignStatusLabels[status]}.`);
+    });
+  const confirm = (title: string, body: string, action: () => Promise<void>) =>
+    setConfirmation({ title, body, action });
+  const rotate = async () => {
+    const out = await api('/api/campaigns/rotate', payload());
+    remember({ ...access, inviteToken: out.inviteToken });
+    setState(out.state);
+    setNotice('Novo convite pronto. O link anterior deixou de funcionar.');
+  };
+  const useInvite = () => {
+    try {
+      const value = inviteInput.trim();
+      const invite = /^[A-Za-z0-9_-]{32}$/.test(value)
+        ? value
+        : new URL(value, location.origin).pathname.match(
+            /^\/campaign\/([A-Za-z0-9_-]{32})\/?$/,
+          )?.[1];
+      if (!invite) throw new Error('Cole o link de convite enviado pelo mestre.');
+      setState(null);
+      setRole(null);
+      setCreating(false);
+      setError('');
+      setMessage('');
+      remember({ locator: invite, inviteToken: invite, sessionToken: '' });
+      history.replaceState({}, '', `/campaign/${invite}`);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  };
   const post = () =>
     act(async () => {
       if (!message.trim()) return;
@@ -194,8 +247,7 @@ export function CampaignView() {
   const link = access.inviteToken
     ? `${location.origin}/campaign/${encodeURIComponent(access.inviteToken)}`
     : '';
-  const options =
-    state && !campaigns.some((c) => c.id === state.id) ? [state, ...campaigns] : campaigns;
+  const options = state ? [state, ...campaigns.filter((c) => c.id !== state.id)] : campaigns;
   const joining = Boolean(access.inviteToken) && !creating;
   const opening =
     !creating &&
@@ -204,6 +256,8 @@ export function CampaignView() {
     Boolean(access.locator && (access.sessionToken || (user && !joining)));
   const startCreation = () => {
     setCreating(true);
+    setEntryMode('create');
+    setConfirmation(null);
     setCampaignName('');
     setError('');
     setLoadError('');
@@ -212,6 +266,27 @@ export function CampaignView() {
   };
   return (
     <div className="campaign-workspace">
+      {(error || loadError) && (
+        <div className="error campaign-feedback" role="alert">
+          <p>{error || loadError}</p>
+          {loadError && (
+            <button
+              className="quiet"
+              onClick={() => {
+                setLoadError('');
+                setRetry((n) => n + 1);
+              }}
+            >
+              Tentar novamente
+            </button>
+          )}
+        </div>
+      )}
+      {notice && (
+        <p className="editor-notice campaign-feedback" role="status">
+          {notice}
+        </p>
+      )}
       <section className="card campaign-toolbar" aria-label="Gerenciar campanhas">
         <div className="campaign-picker">
           {user ? (
@@ -233,7 +308,12 @@ export function CampaignView() {
                     setNotice('');
                     setLoadError('');
                     remember({ locator: e.target.value, sessionToken: '', inviteToken: '' });
-                    history.replaceState({}, '', '/campanhas');
+                    setConfirmation(null);
+                    history.replaceState(
+                      {},
+                      '',
+                      `/campanhas?mesa=${encodeURIComponent(e.target.value)}`,
+                    );
                   }
                 }}
               >
@@ -242,7 +322,7 @@ export function CampaignView() {
                 </option>
                 {options.map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.name}
+                    {c.name} · {campaignStatusLabels[c.status]}
                   </option>
                 ))}
               </select>
@@ -262,6 +342,8 @@ export function CampaignView() {
             onClick={() => {
               setCreating(false);
               setError('');
+              if (state)
+                history.replaceState({}, '', `/campanhas?mesa=${encodeURIComponent(state.id)}`);
             }}
           >
             <Icon name="arrow" size={16} />
@@ -279,59 +361,124 @@ export function CampaignView() {
           </button>
         ) : null}
       </section>
-      {opening ? (
+      {accountLoading || opening ? (
         <section className="card campaign-loading" role="status">
           Abrindo campanha…
+        </section>
+      ) : !creating &&
+        !state &&
+        access.locator &&
+        !access.sessionToken &&
+        !access.inviteToken &&
+        !user ? (
+        <section className="card campaign-empty">
+          <b>Entre para abrir sua campanha</b>
+          <p>
+            Use a conta que participa desta mesa. Para entrar como novo jogador, peça um convite ao
+            mestre.
+          </p>
+          <a className="auth-link" href={loginUrl} target="_top">
+            Entrar para abrir a campanha
+          </a>
         </section>
       ) : !state || creating ? (
         <div className="campaign-grid campaign-lobby">
           <section className="card campaign-hero">
+            {!joining && (
+              <div
+                className="campaign-segments campaign-entry-tabs"
+                aria-label="Começar uma campanha"
+              >
+                <button
+                  type="button"
+                  className="quiet"
+                  aria-pressed={entryMode === 'create'}
+                  onClick={() => setEntryMode('create')}
+                >
+                  Criar mesa
+                </button>
+                <button
+                  type="button"
+                  className="quiet"
+                  aria-pressed={entryMode === 'join'}
+                  onClick={() => setEntryMode('join')}
+                >
+                  Tenho um convite
+                </button>
+              </div>
+            )}
             <span className="eyebrow">CAMPANHA / MESA ONLINE</span>
-            <h2>{joining ? 'Entre na mesa' : 'Junte sua mesa sem complicar.'}</h2>
+            <h2>
+              {joining || entryMode === 'join'
+                ? 'Sua aventura começa aqui.'
+                : 'Uma mesa. Muitas histórias.'}
+            </h2>
             <p className="muted">
               Até 10 pessoas: 1 DM e 9 jogadores.{' '}
               {user
                 ? 'A participação fica vinculada à sua conta.'
                 : 'Entre na sua conta para retomar em outros dispositivos. Sem conta, preserve a sessão deste navegador.'}
             </p>
-            <form
-              className="campaign-form"
-              onSubmit={(e) => {
-                e.preventDefault();
-                void (joining ? join() : createWithInvite());
-              }}
-            >
-              <label>
-                Seu nome de mesa
-                <input
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  maxLength={60}
-                  required
-                  autoComplete="nickname"
-                />
-              </label>
-              {joining ? (
-                <button type="submit" disabled={busy || !name.trim()}>
-                  Entrar na campanha
-                </button>
-              ) : (
-                <>
-                  <label>
-                    Nome da campanha
-                    <input
-                      value={campaignName}
-                      onChange={(e) => setCampaignName(e.target.value)}
-                      maxLength={100}
-                      required
-                    />
-                  </label>
-                  <button type="submit" disabled={busy || !name.trim() || !campaignName.trim()}>
-                    Criar como DM
+            {!joining && entryMode === 'join' ? (
+              <form
+                className="campaign-form"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  useInvite();
+                }}
+              >
+                <label>
+                  Convite da campanha
+                  <input
+                    value={inviteInput}
+                    onChange={(e) => setInviteInput(e.target.value)}
+                    placeholder="Cole o link enviado pelo mestre"
+                    required
+                    maxLength={600}
+                  />
+                </label>
+                <button disabled={busy || !inviteInput.trim()}>Abrir convite</button>
+              </form>
+            ) : (
+              <form
+                className="campaign-form"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  void (joining ? join() : createWithInvite());
+                }}
+              >
+                <label>
+                  Seu nome de mesa
+                  <input
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    maxLength={60}
+                    required
+                    autoComplete="nickname"
+                  />
+                </label>
+                {joining ? (
+                  <button type="submit" disabled={busy || !name.trim()}>
+                    Entrar na campanha
                   </button>
-                </>
-              )}
-            </form>
+                ) : (
+                  <>
+                    <label>
+                      Nome da campanha
+                      <input
+                        value={campaignName}
+                        onChange={(e) => setCampaignName(e.target.value)}
+                        maxLength={100}
+                        required
+                      />
+                    </label>
+                    <button type="submit" disabled={busy || !name.trim() || !campaignName.trim()}>
+                      Criar como DM
+                    </button>
+                  </>
+                )}
+              </form>
+            )}
           </section>
           <section className="campaign-guide card">
             <span className="eyebrow">DO CONVITE À AVENTURA</span>
@@ -366,185 +513,300 @@ export function CampaignView() {
           </section>
         </div>
       ) : (
-        <div className="campaign-grid room">
-          <section className="card campaign-room">
-            <div className="campaign-room-head">
-              <div>
-                <span className="eyebrow">CAMPANHA / {role === 'dm' ? 'DM' : 'JOGADOR'}</span>
-                <h2>{state.name}</h2>
-                <p className="muted campaign-session-meta">
-                  <span className={`campaign-status is-${state.status}`}>
-                    {campaignStatusLabels[state.status]}
-                  </span>
-                  <span>{state.participants.length}/10 participantes</span>
-                </p>
-              </div>
+        <>
+          <section className="campaign-overview card" aria-label="Resumo da campanha">
+            <div>
+              <span className="eyebrow">
+                {role === 'dm' ? 'SUA MESA · VOCÊ É O MESTRE' : 'SUA AVENTURA · JOGADOR'}
+              </span>
+              <h2>{state.name}</h2>
+              <span className={`campaign-status is-${state.status}`}>
+                {campaignStatusLabels[state.status]}
+              </span>
             </div>
-            {role === 'dm' && (
-              <div className="invite-box">
-                {!state.revoked && link ? (
-                  <>
-                    <span>
-                      <small>LINK PRIVADO</small>
-                      {link}
-                    </span>
-                    <button
-                      disabled={busy}
-                      onClick={() =>
-                        act(async () => {
-                          await navigator.clipboard.writeText(link);
-                          setNotice('Convite copiado.');
-                        })
-                      }
-                    >
-                      Copiar convite
-                    </button>
-                  </>
-                ) : (
-                  <p>
-                    {state.revoked
-                      ? 'Convite revogado. Os membros mantêm acesso à mesa.'
-                      : 'Gere um novo convite para compartilhar neste dispositivo.'}
-                  </p>
-                )}
+            <dl className="campaign-metrics">
+              <div>
+                <dt>Participantes</dt>
+                <dd>
+                  {state.participants.length}
+                  <small> / 10</small>
+                </dd>
               </div>
-            )}
-            {user && !linked && access.sessionToken && (
-              <button
-                disabled={busy}
-                className="quiet"
-                onClick={() =>
-                  act(async () => {
-                    setState(await api('/api/campaigns/claim', payload()));
-                    setCampaigns(await api('/api/campaigns'));
-                    setLinked(true);
-                    setNotice('Participação vinculada à sua conta.');
-                  })
-                }
-              >
-                Vincular participação à conta
-              </button>
-            )}
-            <h3 className="participants-title">
-              À mesa <span>{state.participants.length} / 10</span>
-            </h3>
-            <CampaignCharacters
-              state={state}
-              participantId={participantId}
-              role={role}
-              access={payload()}
-              busy={busy}
-              onRemove={(id) =>
-                void act(async () =>
-                  setState(await api('/api/campaigns/remove', { ...payload(), participantId: id })),
-                )
-              }
-              onSaved={() =>
-                void api('/api/campaigns/state', payload())
-                  .then((out) => {
-                    setState(out.state);
-                    setParticipantId(out.participantId);
-                  })
-                  .catch((e) => setError(e.message))
-              }
-            />
+              <div>
+                <dt>Fichas vinculadas</dt>
+                <dd>
+                  {state.participants.filter((p) => p.character).length}
+                  <small> / {state.participants.length}</small>
+                </dd>
+              </div>
+            </dl>
             {role === 'dm' && (
-              <div className="room-actions">
+              <div className="campaign-primary-actions">
                 <button
                   disabled={busy}
                   onClick={() => changeStatus(state.status === 'active' ? 'paused' : 'active')}
                 >
-                  {state.status === 'active' ? 'Pausar sessão' : 'Iniciar sessão'}
+                  {state.status === 'active'
+                    ? 'Pausar sessão'
+                    : state.status === 'closed'
+                      ? 'Reabrir sessão'
+                      : state.status === 'paused'
+                        ? 'Retomar sessão'
+                        : 'Iniciar sessão'}
+                  <Icon name="arrow" size={16} />
                 </button>
                 <button
-                  disabled={busy || state.revoked}
                   className="quiet"
-                  onClick={() =>
-                    act(async () => setState(await api('/api/campaigns/revoke', payload())))
-                  }
+                  disabled={busy}
+                  onClick={() => {
+                    setRoomPanel('party');
+                    requestAnimationFrame(() => {
+                      if (inviteControls.current) {
+                        inviteControls.current.open = true;
+                        inviteControls.current.scrollIntoView({ block: 'center' });
+                      }
+                    });
+                  }}
                 >
-                  Revogar convite
+                  Convidar jogadores
                 </button>
+              </div>
+            )}
+          </section>
+          <nav className="campaign-mobile-nav campaign-segments" aria-label="Painéis da campanha">
+            <button
+              className="quiet"
+              aria-pressed={roomPanel === 'party'}
+              onClick={() => setRoomPanel('party')}
+            >
+              Ver personagens
+            </button>
+            <button
+              className="quiet"
+              aria-pressed={roomPanel === 'journal'}
+              onClick={() => setRoomPanel('journal')}
+            >
+              Ver diário
+            </button>
+          </nav>
+          <div className="campaign-grid room" data-active-panel={roomPanel}>
+            <section className="card campaign-room">
+              <div className="section-title">
+                <div>
+                  <span className="eyebrow">PERSONAGENS & HABILIDADES</span>
+                  <h3>À mesa</h3>
+                </div>
+                <span className="campaign-count">{state.participants.length}/10</span>
+              </div>
+              <p className="campaign-section-hint">
+                Abra sua ficha para jogar e evoluir a árvore. O mestre pode consultar os personagens
+                da mesa.
+              </p>
+              {user && !linked && access.sessionToken && (
                 <button
                   disabled={busy}
                   className="quiet"
                   onClick={() =>
                     act(async () => {
-                      const out = await api('/api/campaigns/rotate', payload());
-                      remember({ ...access, inviteToken: out.inviteToken });
-                      setState(out.state);
-                      history.replaceState(
-                        {},
-                        '',
-                        `/campaign/${encodeURIComponent(out.inviteToken)}`,
-                      );
+                      setState(await api('/api/campaigns/claim', payload()));
+                      setCampaigns(await api('/api/campaigns'));
+                      setLinked(true);
+                      setNotice('Participação vinculada à sua conta.');
                     })
                   }
                 >
-                  Gerar novo convite
+                  Vincular participação à conta
                 </button>
+              )}
+              <CampaignCharacters
+                state={state}
+                participantId={participantId}
+                role={role}
+                access={payload()}
+                busy={busy}
+                onRemove={(id) =>
+                  confirm(
+                    'Remover participante?',
+                    `Isso remove ${state.participants.find((p) => p.id === id)?.name ?? 'o jogador'} e a cópia de seu personagem desta campanha. A ficha salva na conta permanece disponível.`,
+                    async () => {
+                      setState(
+                        await api('/api/campaigns/remove', { ...payload(), participantId: id }),
+                      );
+                      setNotice('Participante removido.');
+                    },
+                  )
+                }
+                onSaved={() =>
+                  void api('/api/campaigns/state', payload())
+                    .then((out) => {
+                      setState(out.state);
+                      setParticipantId(out.participantId);
+                    })
+                    .catch((e) => setError(e.message))
+                }
+              />
+              <div className="campaign-discord-bridge">
+                <span className="eyebrow">CONTINUE NO DISCORD</span>
+                <p>Conecte sua conta e escolha esta mesa no bot:</p>
+                <code>!campanha usar {state.id}</code>
+                <button
+                  className="quiet"
+                  onClick={() =>
+                    void act(async () => {
+                      try {
+                        await navigator.clipboard.writeText(`!campanha usar ${state.id}`);
+                        setNotice(
+                          'Comando copiado. Envie ao Inferus no Discord para selecionar esta mesa.',
+                        );
+                      } catch {
+                        throw new Error('Selecione o comando acima e copie manualmente.');
+                      }
+                    })
+                  }
+                  disabled={busy}
+                >
+                  Copiar comando desta campanha
+                </button>
+                <a href="/discord">
+                  Conectar conta e consultar comandos <Icon name="arrow" size={12} />
+                </a>
+                <small>O bot usa o personagem salvo nesta campanha.</small>
               </div>
-            )}
-          </section>
-          <section className="card campaign-feed">
-            <div className="section-title">
-              <div>
-                <span className="eyebrow">CAPÍTULO EM ANDAMENTO</span>
-                <h3>Diário da mesa</h3>
-              </div>
-              <span aria-hidden="true">✧</span>
-            </div>
-            <div className="feed" role="log" aria-label="Mensagens da campanha" tabIndex={0}>
-              {state.events.map((e) => (
-                <div className={`feed-item ${e.kind}`} key={e.id}>
-                  <b>{e.author}</b>
-                  <span>
-                    {e.kind === 'status'
-                      ? e.body.replace(
-                          /Sessão: (lobby|active|paused|closed)\./g,
-                          (_, value: State['status']) => `Sessão: ${campaignStatusLabels[value]}.`,
+              {role === 'dm' && (
+                <details className="campaign-management" ref={inviteControls}>
+                  <summary>Convites e controles do mestre</summary>
+                  <p className="campaign-section-hint">
+                    Compartilhe o convite apenas com quem vai jogar. A mesa comporta até 9 jogadores
+                    e o mestre.
+                  </p>
+                  {!state.revoked && link ? (
+                    <div className="invite-box">
+                      <label>
+                        Convite da mesa
+                        <input
+                          readOnly
+                          value={link}
+                          onFocus={(e) => e.currentTarget.select()}
+                          aria-label="Link de convite"
+                        />
+                      </label>
+                      <button
+                        disabled={busy}
+                        onClick={() =>
+                          void act(async () => {
+                            try {
+                              await navigator.clipboard.writeText(link);
+                              setNotice('Convite copiado.');
+                            } catch {
+                              throw new Error(
+                                'Selecione o campo de convite e copie o link manualmente.',
+                              );
+                            }
+                          })
+                        }
+                      >
+                        Copiar convite
+                      </button>
+                    </div>
+                  ) : (
+                    <p className="help-text">
+                      {state.revoked
+                        ? 'Convite revogado. Quem já participa mantém o acesso.'
+                        : 'Gere um convite para compartilhar neste dispositivo.'}
+                    </p>
+                  )}
+                  <div className="room-actions">
+                    <button
+                      className="quiet"
+                      disabled={busy}
+                      onClick={() =>
+                        state.revoked || !link
+                          ? void act(rotate)
+                          : confirm(
+                              'Substituir convite?',
+                              'O convite anterior deixará de funcionar. Quem já está na mesa mantém o acesso.',
+                              rotate,
+                            )
+                      }
+                    >
+                      Gerar novo convite
+                    </button>
+                    <button
+                      className="quiet"
+                      disabled={busy || state.revoked}
+                      onClick={() =>
+                        confirm(
+                          'Revogar convite?',
+                          'Novas entradas por este link serão bloqueadas. Os participantes atuais continuam com acesso.',
+                          async () => {
+                            setState(await api('/api/campaigns/revoke', payload()));
+                            setNotice('Convite revogado.');
+                          },
                         )
-                      : e.body}
-                  </span>
-                  <small>
-                    {new Date(e.createdAt).toLocaleTimeString('pt-BR', {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
-                  </small>
-                </div>
-              ))}
-            </div>
-            <form
-              className="message-line"
-              onSubmit={(e) => {
-                e.preventDefault();
-                void post();
+                      }
+                    >
+                      Revogar convite
+                    </button>
+                    <button
+                      className="quiet danger"
+                      disabled={busy || state.status === 'closed'}
+                      onClick={() =>
+                        confirm(
+                          'Encerrar sessão?',
+                          'O diário ficará em modo de consulta e novas entradas serão bloqueadas. Você poderá reabrir a sessão depois.',
+                          async () => {
+                            setState(
+                              await api('/api/campaigns/status', {
+                                ...payload(),
+                                status: 'closed',
+                              }),
+                            );
+                            setNotice('Sessão encerrada. Os dados da campanha foram preservados.');
+                          },
+                        )
+                      }
+                    >
+                      Encerrar sessão
+                    </button>
+                  </div>
+                </details>
+              )}
+            </section>
+            <CampaignJournal
+              key={state.id}
+              state={state}
+              message={message}
+              setMessage={setMessage}
+              busy={busy}
+              post={() => void post()}
+            />
+          </div>
+        </>
+      )}
+      {confirmation && (
+        <Modal
+          title={confirmation.title}
+          onClose={() => {
+            if (!busy) setConfirmation(null);
+          }}
+        >
+          <p className="campaign-confirm-copy">{confirmation.body}</p>
+          <div className="campaign-confirm-actions">
+            <button className="quiet" disabled={busy} onClick={() => setConfirmation(null)}>
+              Cancelar
+            </button>
+            <button
+              disabled={busy}
+              onClick={() => {
+                const action = confirmation.action;
+                setConfirmation(null);
+                void act(action);
               }}
             >
-              <input
-                aria-label="Mensagem para a mesa"
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                placeholder="Escreva para a mesa…"
-                maxLength={500}
-              />
-              <button type="submit" disabled={busy || !message.trim()}>
-                Enviar
-              </button>
-            </form>
-          </section>
-        </div>
-      )}
-      {(error || loadError) && (
-        <p className="error campaign-feedback" role="alert">
-          {error || loadError}
-        </p>
-      )}
-      {notice && (
-        <p className="editor-notice campaign-feedback" role="status">
-          {notice}
-        </p>
+              Confirmar
+            </button>
+          </div>
+        </Modal>
       )}
     </div>
   );

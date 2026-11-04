@@ -302,7 +302,20 @@ test('configuração pública expõe somente dados de conexão; erros do Discord
     const response = await worker.fetch(request('/api/discord/config'), env);
     const data = (await response.json()) as any;
     assert.equal(data.serviceReady, true);
-    assert.deepEqual(data.commands, ['!rolar', '!r', '!ajuda']);
+    for (const command of [
+      '!rolar',
+      '!r',
+      '!ajuda',
+      '!campanha',
+      '!mesa',
+      '!diario',
+      '!sessao',
+      '!anotar',
+      '!acoes',
+      '!vincular',
+    ])
+      assert(data.commands.includes(command));
+    assert(data.commands.every((command: string) => command.startsWith('!')));
     assert.equal(data.gatewayStatus, 'unverified');
     assert.equal(data.hostingRequired, true);
     assert(!JSON.stringify(data).includes(env.DISCORD_PUBLIC_KEY!));

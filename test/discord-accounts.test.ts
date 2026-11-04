@@ -98,7 +98,7 @@ test('vínculo exige bot autenticado e confirmação no site; seleciona apenas d
     assert(JSON.stringify(list).includes('Mesa vinculada'));
     assert(!JSON.stringify(list).includes(created.inviteToken));
     await accounts.change('owner', { action: 'disconnect' });
-    await assert.rejects(accounts.bot(request, { action: 'character', discordId }), /Vincule/);
+    await assert.rejects(accounts.bot(request, { action: 'character', discordId }), /vincule/i);
   } finally {
     db.close();
   }

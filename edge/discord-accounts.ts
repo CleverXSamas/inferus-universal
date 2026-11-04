@@ -63,11 +63,10 @@ export function discordAccounts(env: Env) {
     for (const campaign of await campaigns.list(owner)) {
       const own = await campaigns.get(campaign.id, '', owner);
       const p = own.state.participants.find((p) => p.id === own.participantId);
-      if (p?.character)
-        result.push({
-          key: `campaign:${campaign.id}`,
-          label: `${campaign.name} · ${p.character.name}`,
-        });
+      result.push({
+        key: `campaign:${campaign.id}`,
+        label: `${campaign.name} · ${p?.character?.name ?? 'Sem personagem vinculado'}`,
+      });
     }
     return result;
   }
@@ -198,24 +197,110 @@ export function discordAccounts(env: Env) {
           );
         return { ok: true, pending: true };
       }
-      if (!['character', 'campaigns'].includes(body.action))
+      if (!['character', 'campaigns', 'campaign', 'session', 'note'].includes(body.action))
         throw new ApiError(400, 'Ação do bot inválida.');
       const link = await env.DB.prepare('SELECT * FROM edge_discord_accounts WHERE discord_id=?')
         .bind(discordId)
         .first<Link>();
       if (!link)
-        throw new ApiError(
-          403,
-          'Vincule seu Discord e confirme a identidade na página Discord do Inferus.',
-        );
-      if (body.action === 'campaigns')
+        throw new ApiError(403, 'Use !login, vincule seu Discord e confirme a identidade no site.');
+      if (body.action === 'campaigns') {
+        const list = [];
+        for (const c of await campaigns.list(link.owner_id)) {
+          const own = await campaigns.get(c.id, '', link.owner_id);
+          list.push({
+            id: c.id,
+            name: own.state.name,
+            status: own.state.status,
+            participants: own.state.participants.length,
+            role: own.role,
+            character:
+              own.state.participants.find((p) => p.id === own.participantId)?.character?.name ??
+              null,
+            selected: link.active_kind === 'campaign' && link.active_id === c.id,
+          });
+        }
         return {
-          campaigns: (await campaigns.list(link.owner_id)).map((c) => ({
-            name: c.name,
-            status: c.status,
-            participants: c.participants.length,
-          })),
+          campaigns: list.sort(
+            (a, b) => a.name.localeCompare(b.name, 'pt-BR') || a.id.localeCompare(b.id),
+          ),
         };
+      }
+      if (['campaign', 'session', 'note'].includes(body.action)) {
+        let campaignId = link.active_kind === 'campaign' ? link.active_id : null;
+        if (body.action === 'campaign' && body.query !== undefined) {
+          const query = String(body.query).trim();
+          if (!query || query.length > 100)
+            throw new ApiError(400, 'Use !campanha usar Nome da campanha ou ID.');
+          const available = await campaigns.list(link.owner_id);
+          const exactId = available.find((c) => c.id === query);
+          const matches = exactId
+            ? [exactId]
+            : available.filter(
+                (c) => c.name.toLocaleLowerCase('pt-BR') === query.toLocaleLowerCase('pt-BR'),
+              );
+          if (matches.length !== 1)
+            throw new ApiError(
+              409,
+              matches.length
+                ? 'Há campanhas com o mesmo nome. Use o ID exibido em !campanhas.'
+                : 'Campanha não encontrada na sua conta. Use !campanhas e copie o nome completo ou ID.',
+            );
+          campaignId = matches[0].id;
+          await campaigns.get(campaignId, '', link.owner_id);
+          const changed = await env.DB.prepare(
+            "UPDATE edge_discord_accounts SET active_kind='campaign',active_id=? WHERE owner_id=? AND discord_id=?",
+          )
+            .bind(campaignId, link.owner_id, discordId)
+            .run();
+          if (changed.meta.changes !== 1)
+            throw new ApiError(409, 'O vínculo mudou. Use !login novamente.');
+        }
+        if (!campaignId)
+          throw new ApiError(
+            409,
+            'Escolha sua mesa com !campanha usar Nome da campanha. Consulte !campanhas.',
+          );
+        // Every operation rechecks membership; the existing store enforces the DM role.
+        let own = await campaigns.get(campaignId, '', link.owner_id);
+        if (body.action === 'session') {
+          if (!['active', 'paused', 'closed'].includes(body.status))
+            throw new ApiError(400, 'Use !sessao iniciar, pausar, retomar ou encerrar.');
+          own = {
+            ...own,
+            state: await campaigns.status(campaignId, '', body.status, link.owner_id),
+          };
+        }
+        if (body.action === 'note') {
+          if (typeof body.text !== 'string' || !body.text.trim() || body.text.length > 300)
+            throw new ApiError(400, 'Use !anotar seguido de uma mensagem de até 300 caracteres.');
+          if (own.state.status === 'closed')
+            throw new ApiError(
+              409,
+              'A campanha está encerrada. Peça ao mestre para reabrir a sessão.',
+            );
+          await campaigns.event(campaignId, '', body.text, link.owner_id);
+          return { name: own.state.name };
+        }
+        return {
+          campaign: {
+            id: own.state.id,
+            name: own.state.name,
+            status: own.state.status,
+            role: own.role,
+            character:
+              own.state.participants.find((p) => p.id === own.participantId)?.character?.name ??
+              null,
+            participants: own.state.participants.map((p) => ({
+              name: p.name,
+              role: p.role,
+              character: p.character?.name ?? null,
+              self: p.id === own.participantId,
+            })),
+            events: own.state.events,
+          },
+        };
+      }
       let sheet: Sheet | null = null;
       if (link.active_kind === 'sheet') {
         const row = await env.DB.prepare(
@@ -230,7 +315,7 @@ export function discordAccounts(env: Env) {
       if (!sheet)
         throw new ApiError(
           404,
-          'Escolha uma ficha ativa na página Discord do site ou salve seu personagem na campanha.',
+          'Salve seu personagem na campanha selecionada ou escolha outra ficha na página Discord do site. Use !campanha para conferir a mesa.',
         );
       const document = withCharacterTree(sheet);
       return {

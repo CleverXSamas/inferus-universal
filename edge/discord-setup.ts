@@ -1,3 +1,4 @@
+import { commandCatalog } from '../packages/discord-ui/commands.js';
 import { removeLegacyCommands } from '../packages/discord-commands/index.js';
 import { ApiError, type Env } from './types.js';
 export const discordUrls = (origin: string, clientId: string) => ({
@@ -77,6 +78,13 @@ export function discordConfig(origin: string, env: Env) {
     gatewayStatus: 'unverified',
     hostingRequired: true,
     installUrl: ready ? discordUrls(origin, env.DISCORD_CLIENT_ID!).installUrl : null,
-    commands: ['!rolar', '!r', '!ajuda'],
+    commands: [
+      ...new Set([
+        ...commandCatalog.map((c) => c.command.split(' ')[0]),
+        '!r',
+        '!roll',
+        '!vincular',
+      ]),
+    ],
   };
 }

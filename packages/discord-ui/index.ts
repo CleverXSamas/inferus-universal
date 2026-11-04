@@ -1,3 +1,4 @@
+import { commandCatalog } from './commands.js';
 import { parseExpression, type RollRecord } from '../dice-core/index.js';
 export const diceExamples = [
   {
@@ -43,9 +44,11 @@ export const diceExamples = [
     description: 'Role quatro d6 e mantenha os três maiores.',
   },
 ] as const;
-export type HelpTopic = 'inicio' | 'expressoes' | 'privacidade';
+export type HelpTopic = 'inicio' | 'expressoes' | 'privacidade' | 'campanhas' | 'personagem';
 export const helpTopics = [
   { name: 'Primeiros passos', value: 'inicio' },
+  { name: 'Campanhas e sessões', value: 'campanhas' },
+  { name: 'Seu personagem', value: 'personagem' },
   { name: 'Expressões e exemplos', value: 'expressoes' },
   { name: 'Privacidade e limites', value: 'privacidade' },
 ] as const;
@@ -272,61 +275,72 @@ export function formatRoll(result: RollRecord, reason = '', origin?: string): Di
 export function formatHelp(topic: unknown = 'inicio', origin?: string): DiscordMessage {
   const selected = helpTopics.some((t) => t.value === topic) ? topic : 'inicio';
   const fields =
-    selected === 'expressoes'
-      ? diceExamples.map((p) => ({ name: p.name, value: `\`${p.expression}\` — ${p.description}` }))
-      : selected === 'privacidade'
-        ? [
-            {
-              name: 'Só você',
-              value:
-                'Comandos e resultados são públicos no canal. Use o rolador do site para uma jogada reservada.',
-            },
-            {
-              name: 'No canal',
-              value:
-                'Digite !rolar ou !r. O comando permanece na conversa e a resposta fica visível para a mesa. O bot processa apenas mensagens com seus comandos e não busca o histórico.',
-            },
-            {
-              name: 'Limites de dados',
-              value:
-                'De 1 a 40 dados por grupo, de 2 a 1000 lados e expressão de até 160 caracteres. Bônus total entre -50 e +50.',
-            },
-            {
-              name: 'Fichas e árvores',
-              value:
-                'O bot não vincula contas sem confirmação. Use !login, confirme a identidade no site e escolha a ficha ativa para !ficha, !skills e !acao.',
-            },
-          ]
-        : [
-            {
-              name: '1 · Faça sua primeira jogada',
-              value: '`!rolar 1d20+5`\nTambém aceita !r. Envie como uma mensagem normal no canal.',
-            },
-            {
-              name: '2 · Dê contexto',
-              value:
-                'Exemplo: `!rolar 1d20+5 alvo:15 | Percepção`. O texto depois de | nomeia a jogada.',
-            },
-            {
-              name: '3 · Sua conta e seu personagem',
-              value:
-                'Use !login para vincular a conta; depois !ficha, !skills, !campanhas ou !acao Nome da ação. Respostas e rolagens aparecem no canal.',
-            },
-            {
-              name: 'Leia cada dado',
-              value:
-                'Valores em destaque foram mantidos; valores riscados foram descartados. Explosões mostram a soma das faces.',
-            },
-          ];
+    selected === 'campanhas' || selected === 'personagem'
+      ? commandCatalog
+          .filter((c) => c.group === (selected === 'campanhas' ? 'Campanha' : 'Personagem'))
+          .map((c) => ({ name: c.title, value: `\`${c.command}\`\n${c.description}` }))
+      : selected === 'expressoes'
+        ? diceExamples.map((p) => ({
+            name: p.name,
+            value: `\`${p.expression}\` — ${p.description}`,
+          }))
+        : selected === 'privacidade'
+          ? [
+              {
+                name: 'Só você',
+                value:
+                  'Comandos e resultados são públicos no canal. Use o rolador do site para uma jogada reservada.',
+              },
+              {
+                name: 'No canal',
+                value:
+                  'Digite !rolar ou !r. O comando permanece na conversa e a resposta fica visível para a mesa. O bot processa apenas mensagens com seus comandos e não busca o histórico.',
+              },
+              {
+                name: 'Limites de dados',
+                value:
+                  'De 1 a 40 dados por grupo, de 2 a 1000 lados e expressão de até 160 caracteres. Bônus total entre -50 e +50.',
+              },
+              {
+                name: 'Fichas e árvores',
+                value:
+                  'O bot não vincula contas sem confirmação. Use !login, confirme a identidade no site e escolha a ficha ativa para !ficha, !skills e !acao.',
+              },
+            ]
+          : [
+              {
+                name: '1 · Faça sua primeira jogada',
+                value:
+                  '`!rolar 1d20+5`\nTambém aceita !r. Envie como uma mensagem normal no canal.',
+              },
+              {
+                name: '2 · Dê contexto',
+                value:
+                  'Exemplo: `!rolar 1d20+5 alvo:15 | Percepção`. O texto depois de | nomeia a jogada.',
+              },
+              {
+                name: '3 · Sua conta e seu personagem',
+                value:
+                  'Use !login para vincular a conta; depois !ficha, !skills, !campanhas ou !acao Nome da ação. Respostas e rolagens aparecem no canal.',
+              },
+              {
+                name: 'Leia cada dado',
+                value:
+                  'Valores em destaque foram mantidos; valores riscados foram descartados. Explosões mostram a soma das faces.',
+              },
+            ];
   return {
     content: '',
     embeds: [
       {
         title: `Inferus · ${helpTopics.find((t) => t.value === selected)?.name}`,
-        description: 'Sua mesa. Seus dados. Um caminho claro para a próxima jogada.',
+        description:
+          selected === 'campanhas'
+            ? 'Vincule a conta com !login e escolha sua mesa. Comandos e registros consultados ficam públicos no canal.'
+            : 'Sua mesa. Seus dados. Use !ajuda campanhas ou !ajuda personagem para continuar.',
         color: 0xb79be7,
         fields,
-        footer: { text: 'INFERUS UNIVERSAL · !ajuda expressoes para mais exemplos' },
+        footer: { text: 'INFERUS · !ajuda campanhas · !ajuda personagem · !ajuda expressoes' },
       },
     ],
     ...siteButton(origin),

@@ -29,3 +29,7 @@
 - O proprietário escolheu manter a hospedagem atual e vincular Discord à conta existente. Códigos só pedem vínculo; o dono confirma o ID no site antes de liberar consultas. A ficha ativa é selecionada explicitamente. Não se coleta senha ou Bot Token em comandos.
 - Personagens de campanha são cópias explícitas da ficha e árvore; dono edita, DM consulta e os demais recebem apenas identificação resumida. Revisões impedem sobrescrita silenciosa entre abas. Custos e efeitos continuam manuais.
 - Toda alteração solicitada passa por revisão, verificações e correção de falhas observadas antes da entrega; limites de verificação e operações externas pendentes são informados.
+
+- A seleção `active_kind=campaign` existente passa a representar a mesa e seu próprio personagem, sem migração ou nova credencial. A escolha pelo bot é pessoal e explícita; uma campanha sem personagem não herda a ficha de outra mesa.
+- O bot usa as mesmas permissões de participante/DM para consultar diário, registrar mensagens e controlar sessão. A interface de vínculo explica essas capacidades e a publicação das respostas no canal. Convites e remoção de membros permanecem no site.
+- Encerrar uma sessão preserva dados, bloqueia novas mensagens/entradas e pode ser revertido pelo DM. O backend Node e D1 aplica o mesmo comportamento.

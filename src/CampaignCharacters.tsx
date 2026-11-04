@@ -205,38 +205,47 @@ export function CampaignCharacters({
     <>
       <div className="participants">
         {state.participants.map((p) => (
-          <div className="participant" key={p.id}>
+          <div className={`participant ${p.id === participantId ? 'is-self' : ''}`} key={p.id}>
             <span className="participant-avatar" aria-hidden="true">
               {p.name.slice(0, 2).toUpperCase()}
             </span>
             <span className="campaign-person-name">
-              <b>{p.name}</b>
+              <b>
+                {p.name}
+                {p.id === participantId ? ' · você' : ''}
+              </b>
               <small>
                 {p.character
                   ? `${p.character.name} · ${p.character.unlocked}/${p.character.skills} skills`
                   : 'Personagem ainda não vinculado'}
               </small>
             </span>
-            <em>{p.role === 'dm' ? 'DM' : 'jogador'}</em>
-            {(p.id === participantId || role === 'dm') && (
-              <button
-                className="participant-sheet-button"
-                disabled={busy}
-                aria-label={`Abrir personagem de ${p.name}`}
-                onClick={() => setSelected(p.id)}
-              >
-                {p.character
-                  ? 'Ficha + árvore'
-                  : p.id === participantId
-                    ? 'Vincular ficha'
-                    : 'Consultar'}
-              </button>
-            )}
-            {role === 'dm' && p.role !== 'dm' && (
-              <button disabled={busy} onClick={() => onRemove(p.id)}>
-                Remover
-              </button>
-            )}
+            <em>{p.role === 'dm' ? 'Mestre' : 'Jogador'}</em>
+            <div className="participant-actions">
+              {(p.id === participantId || role === 'dm') && (
+                <button
+                  className="participant-sheet-button"
+                  disabled={busy}
+                  aria-label={`Abrir personagem de ${p.name}`}
+                  onClick={() => setSelected(p.id)}
+                >
+                  {p.character
+                    ? 'Ficha + árvore'
+                    : p.id === participantId
+                      ? 'Vincular ficha'
+                      : 'Consultar'}
+                </button>
+              )}
+              {role === 'dm' && p.role !== 'dm' && (
+                <button
+                  disabled={busy}
+                  aria-label={`Remover ${p.name} da campanha`}
+                  onClick={() => onRemove(p.id)}
+                >
+                  Remover
+                </button>
+              )}
+            </div>
           </div>
         ))}
       </div>
