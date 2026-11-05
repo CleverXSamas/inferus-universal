@@ -1,10 +1,10 @@
 # Inferus Universal
 
-Ferramenta local-first para mesa de campanha: rolador auditável, fichas personalizáveis, skill trees radiais, campanhas privadas e contas Manus OAuth.
+Fichas universais, skill trees e integração com Discord. O site abre na ficha e mantém três áreas: **Criar ficha**, **Criar árvore** e **Discord**.
 
-## Executar
+## Desenvolvimento
 
-Requer Node.js 22.18 ou superior.
+Node 22.18 ou superior:
 
 ```bash
 npm ci
@@ -12,80 +12,45 @@ npm run build
 npm run dev
 ```
 
-Abra `http://localhost:3000`. O frontend é servido de `dist/`; o servidor compilado fica em `dist-server/`. Em produção, use `npm start`. O comando de desenvolvimento executa o servidor TypeScript; refaça o build para atualizar o frontend.
+O frontend compilado fica em `dist/` e o servidor em `dist-server/`. Em produção Node, use `npm start`. Variáveis em `.env.example`; mantenha segredos nas variáveis da hospedagem.
 
-As variáveis estão em `.env.example`. Configure-as no ambiente do processo ou use `node --env-file=.env dist-server/server/index.js`; os scripts não carregam `.env` automaticamente.
+## Ficha e skill tree
 
-## Contas e fichas
+A ficha aceita atributos, texto, recursos, listas, fórmulas e ações de dados. Sistema e conceito são livres. Fixe os campos essenciais com ☆ para vê-los em **Modo jogo → Em jogo**. A busca encontra campos por nome ou referência sem alterar o documento. Importação JSON de até 128 KB valida ficha e árvore, pede confirmação e permite desfazer. A exportação inclui a árvore do personagem.
 
-**Entrar / criar conta** inicia Manus OAuth. O Inferus não recebe nem armazena senhas. Configure `MANUS_PROJECT_ID`, `MANUS_OAUTH_API_URL`, `MANUS_OAUTH_PORTAL_URL` e a origem pública fixa em `PUBLIC_ORIGIN`. `MANUS_JWT_SECRET` é necessário apenas para aceitar sessões JWT assinadas do Preview; tokens precisam de HS256, expiração e `appId` correspondente ao projeto.
+No estúdio, crie skills e ramos, reutilize modelos da biblioteca, mova sequências e remova skills/ramos com confirmação e Desfazer. **Localizar skill no mapa** seleciona e centraliza qualquer skill. Custos e efeitos são aplicados manualmente na ficha.
 
-A sessão própria tem 30 dias e usa token aleatório, armazenado apenas por hash. O cookie é HttpOnly, Secure e `SameSite=None` em HTTPS encaminhado pelo proxy; no desenvolvimento HTTP usa `SameSite=Lax`. O logout é POST e revoga a sessão própria atual. O proxy de produção deve sobrescrever os cabeçalhos encaminhados de protocolo e host.
-
-Fichas podem ser editadas, ampliadas e salvas localmente. **Salvar na conta** grava uma cópia privada associada ao `openId` autenticado. Em outro dispositivo, faça login e selecione a ficha em **Fichas da conta**. A sincronização é explícita: o salvamento mais recente substitui a cópia da conta. A cópia local continua no navegador após logout ou remoção da cópia da conta.
-
-Fórmulas aceitam `@referencia`, `+`, `-`, `*`, `×`, `/`, parênteses e `floor`, `ceil`, `min`, `max`, `abs`. Dependências são resolvidas independentemente da ordem dos campos; ciclos, referências inválidas e divisão por zero geram erro. Não há execução de JavaScript.
-
-## Campanhas
-
-Uma mesa aceita 1 DM e até 9 jogadores. Criação e entrada autenticadas vinculam a participação ao `openId`; **Minhas campanhas** permite retomá-la em outro dispositivo. O DM pode iniciar/pausar a sessão, remover jogadores, revogar e gerar novos convites. Mensagens têm até 500 caracteres e nomes de mesa até 60.
-
-O convite permite criar uma participação de jogador, sem conceder o papel do DM. Um nome já utilizado exige outra escolha; nomes não recuperam identidade nem privilégios. Sem conta, preserve a sessão do navegador. Para vincular uma participação antiga, entre na conta no navegador que possui a sessão original e use **Vincular participação à conta**. Uma sessão vinculada exige aquela conta; não pode ser revendicada com outra conta ou apenas com o nome.
-
-Revogar ou substituir o convite bloqueia novas entradas pelo link antigo e mantém o acesso dos membros existentes. Remover um jogador invalida suas sessões e sua participação na conta; se ele ainda tiver um convite válido, poderá pedir nova entrada como jogador. O DM pode revogar o convite para impedir isso.
-
-A sala usa polling a cada cinco segundos, com cancelamento da requisição ao sair e sem sobreposição entre polls. As permissões e o limite são verificados no servidor. No MySQL, a verificação de capacidade e a entrada ocorrem sob bloqueio transacional da campanha.
-
-## Persistência
-
-Com `DATABASE_URL`, usuários, sessões, campanhas, participantes, vínculos de conta, eventos e fichas são persistidos em MySQL. As tabelas são criadas de forma idempotente. Os vínculos novos usam tabelas adicionais, preservando campanhas anteriores. `GET /api/health` informa `campaignStorage` e `authStorage`.
-
-Sem banco, o modo memória serve para desenvolvimento e perde dados ao reiniciar. Histórico de rolagens e árvores da API também ficam em memória; a demonstração de árvore permanece local. Fichas e histórico locais usam o armazenamento do navegador.
+A cópia local é salva no navegador. **Salvar na conta** sincroniza explicitamente a ficha e sua árvore; depois carregue-a em outro dispositivo. O salvamento mais recente substitui a cópia da conta. Fórmulas usam referências e funções permitidas, sem executar JavaScript.
 
 ## Discord
 
-O bot usa mensagens públicas com prefixo: `!rolar 1d20+5`, `!r 2d20kh1+5 alvo:15 | Percepção` e `!ajuda`. O comando digitado permanece no canal e o resultado usa o mesmo motor de dados do site.
+Use `!login`, gere um código no site, envie `!vincular CÓDIGO` e confirme sua identidade no site. Depois:
 
-O site publicado atende HTTP e não hospeda a conexão contínua do Discord Gateway. Para ativar o bot, execute um processo Node persistente:
+- `!fichas [página]` lista suas fichas salvas.
+- `!ficha usar Nome completo` ou `!ficha usar ID` escolhe o personagem.
+- `!ficha` resume atributos e recursos; `!skills [página]` lista desbloqueios.
+- `!acoes [página]` mostra comandos; `!acao Ataque alvo:15` rola uma ação da ficha.
+- `!rolar 1d20+5 alvo:15 | Percepção` continua disponível no Discord.
+- `!ajuda`, `!ajuda personagem`, `!ajuda expressoes` e `!ajuda privacidade` orientam o uso.
 
-1. Habilite **Message Content Intent** em Discord Developer Portal → Bot.
-2. Configure `DISCORD_TOKEN` no cofre da hospedagem, `DISCORD_CLIENT_ID` e `PUBLIC_ORIGIN` com a origem HTTPS do site.
-3. Execute `npm run build` e `npm run start:bot` (ou use o Dockerfile com o comando de início `node dist-server/bot/index.js`). O bot não precisa de banco MySQL nem da API para rolar.
-4. Use `npm run bot:remove-slash` uma vez para remover os antigos comandos globais. Se houve registro em um servidor de teste, configure também `DISCORD_GUILD_ID`. O serviço nunca registra comandos slash.
+Comandos e respostas são públicos no canal. O bot só lê fichas do dono vinculado; campos de texto da ficha são excluídos da resposta. Uma seleção antiga de modo removido exige escolher novamente uma ficha. O site não hospeda o Discord Gateway: rode `npm run build && npm run start:bot` em processo Node persistente com Message Content Intent habilitado. Consulte [docs/DISCORD.md](docs/DISCORD.md) e o pacote Discloud.
 
-A página Discord do site inclui uma opção autenticada para remover os comandos globais antigos com um token temporário, sem armazená-lo. Ela não conecta o Gateway. Consulte [o guia do bot](docs/DISCORD.md) para permissões, migração e validação.
+## Hospedagem e dados
+
+Site: https://inferus-universal.peneseretu.chatgpt.site
+
+Sites usa login ChatGPT com vínculo confirmado ao Discord e persistência D1. A alternativa Node usa Manus OAuth e MySQL (`DATABASE_URL`); configure `MANUS_PROJECT_ID`, `MANUS_OAUTH_API_URL`, `MANUS_OAUTH_PORTAL_URL` e `PUBLIC_ORIGIN`. `MANUS_JWT_SECRET` serve para sessões JWT de Preview. Sem banco, o servidor Node usa memória apenas para desenvolvimento.
+
+Campanha, VTT e Dado Aberto foram retirados da interface, dos módulos, das APIs e dos comandos do bot. Links antigos abrem a ficha. Migrações históricas do banco são preservadas para atualizar instalações existentes, sem apagar registros por uma mudança de interface. Rolagens da ficha e do bot usam o mesmo motor.
 
 ## Validação
 
 ```bash
 npm run check
+npm run check:edge
 npm test
-npm run test:statistics
-npx playwright install chromium
 npm run test:browser
+npm run test:browser:edge
 ```
 
-`npm test` verifica tipos e executa testes de núcleo, permissões, HTTP, OAuth e Discord. Para incluir persistência MySQL e concorrência, configure `TEST_DATABASE_URL` apontando a um **banco descartável**. Esses testes criam registros no banco indicado.
-
-O CI possui um job com MySQL e fluxos de navegador e outro job estatístico separado, com 1.000.000 amostras por dado (d6 e d20). A tolerância estatística de sete desvios padrão é um detector de viés, não uma prova de aleatoriedade. As faces usam fonte criptográfica com rejeição para evitar viés de módulo.
-
-## Presets e limites
-
-Os seis presets de RPG são sínteses originais, editáveis e não oficiais. As fontes ficam disponíveis no seletor de fichas. O som é sintetizado localmente via Web Audio API.
-
-A árvore visual demonstra geração e progressão, mas ainda não desconta uma moeda nem aplica os efeitos na ficha. A interface informa efeitos desbloqueados. Fichas agora carregam sua própria árvore e podem ser vinculadas à campanha; o bot consulta o personagem ativo após vínculo de identidade confirmado. Custos e efeitos ainda são manuais. Consulte [o modo campanha](docs/CAMPAIGNS.md).
-
-## Hospedagem
-
-A versão gratuita adaptada está publicada em **https://inferus-universal.peneseretu.chatgpt.site**. Consulte o [guia Cloudflare/Sites](docs/CLOUDFLARE.md) para login ChatGPT, D1, build e limites da hospedagem HTTP para o bot por prefixo. A versão Node/MySQL mantém Manus e não é substituída.
-
-
-O [guia de deploy no Railway](docs/DEPLOYMENT.md) descreve os serviços web, bot e MySQL, as referências privadas e o armazenamento dos segredos. Os arquivos `deploy/railway.web.toml` e `deploy/railway.bot.toml` configuram build, comandos de inicialização e reinício. Em produção, o servidor exige banco, origem HTTPS e OAuth configurados. `npm run bot:check` valida o token e a aplicação Discord sem registrar comandos.
-
-### Mesa virtual e ficha universal
-
-Em Campanha, use **Abrir mesa virtual** para navegar no mapa e colocar personagens vinculados. O mestre configura a cena e adiciona NPCs; cada jogador controla seu personagem. Selecione um token para abrir ficha/skills ou mover com setas. A remoção do token preserva a ficha.
-
-Na ficha, informe livremente sistema e conceito e use ☆ para fixar os campos mais usados em **Modo jogo → Em jogo**.
-
-Para executar também os testes de persistência MySQL: `npm run test:full` (Docker; banco temporário). Referências, análise REA e limites do VTT: [docs/REFERENCES-VTT.md](docs/REFERENCES-VTT.md).
+`npm test` limpa os artefatos compilados antigos antes de executar a suíte. `npm run test:full` provisiona MySQL descartável com Docker; também aceita `TEST_DATABASE_URL` de banco dedicado a testes. Nunca use banco de produção. O CI executa os testes de persistência com MySQL. `npm run package:sites` prepara o Worker; `npm run package:bot` gera o ZIP do bot com token vazio.

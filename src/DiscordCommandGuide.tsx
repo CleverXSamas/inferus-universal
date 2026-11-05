@@ -19,13 +19,13 @@ export function DiscordCommandGuide() {
     <section className="card bot-command-guide" aria-label="Guia de comandos do Inferus">
       <div className="bot-section-heading">
         <div>
-          <span className="eyebrow">DA PRIMEIRA JOGADA À CAMPANHA</span>
+          <span className="eyebrow">DO PERSONAGEM À JOGADA</span>
           <h3>O comando certo, na hora certa.</h3>
           <p>Mensagens com prefixo !. Todos no canal veem o comando e a resposta.</p>
         </div>
       </div>
       <div className="command-guide-tools">
-        <div className="campaign-segments" aria-label="Categorias de comandos">
+        <div className="command-segments" aria-label="Categorias de comandos">
           {commandGroups.map((g) => (
             <button
               type="button"
@@ -43,7 +43,7 @@ export function DiscordCommandGuide() {
         </div>
         <input
           aria-label="Buscar comando"
-          placeholder="Buscar ação, campanha, dados…"
+          placeholder="Buscar ação, personagem, dados…"
           value={query}
           maxLength={100}
           onChange={(e) => setQuery(e.target.value)}
@@ -79,7 +79,7 @@ export function DiscordCommandGuide() {
         ))}
       </div>
       {!visible.length && (
-        <div className="campaign-empty">
+        <div className="command-empty">
           <b>Nenhum comando encontrado</b>
           <p>Tente outra palavra ou categoria.</p>
           <button

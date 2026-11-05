@@ -1,3 +1,5 @@
+> Registro histórico da V11. Os modos Campanha, VTT e Dado Aberto foram removidos na V12 a pedido do usuário. Consulte README.md para o produto atual.
+
 # Ficha universal e mesa virtual — revisão V11
 
 Referências públicas consultadas em 4 de novembro de 2026:

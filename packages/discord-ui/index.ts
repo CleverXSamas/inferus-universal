@@ -44,10 +44,9 @@ export const diceExamples = [
     description: 'Role quatro d6 e mantenha os três maiores.',
   },
 ] as const;
-export type HelpTopic = 'inicio' | 'expressoes' | 'privacidade' | 'campanhas' | 'personagem';
+export type HelpTopic = 'inicio' | 'expressoes' | 'privacidade' | 'personagem';
 export const helpTopics = [
   { name: 'Primeiros passos', value: 'inicio' },
-  { name: 'Campanhas e sessões', value: 'campanhas' },
   { name: 'Seu personagem', value: 'personagem' },
   { name: 'Expressões e exemplos', value: 'expressoes' },
   { name: 'Privacidade e limites', value: 'privacidade' },
@@ -275,9 +274,9 @@ export function formatRoll(result: RollRecord, reason = '', origin?: string): Di
 export function formatHelp(topic: unknown = 'inicio', origin?: string): DiscordMessage {
   const selected = helpTopics.some((t) => t.value === topic) ? topic : 'inicio';
   const fields =
-    selected === 'campanhas' || selected === 'personagem'
+    selected === 'personagem'
       ? commandCatalog
-          .filter((c) => c.group === (selected === 'campanhas' ? 'Campanha' : 'Personagem'))
+          .filter((c) => c.group === 'Personagem')
           .map((c) => ({ name: c.title, value: `\`${c.command}\`\n${c.description}` }))
       : selected === 'expressoes'
         ? diceExamples.map((p) => ({
@@ -289,7 +288,7 @@ export function formatHelp(topic: unknown = 'inicio', origin?: string): DiscordM
               {
                 name: 'Só você',
                 value:
-                  'Comandos e resultados são públicos no canal. Use o rolador do site para uma jogada reservada.',
+                  'Comandos e resultados são públicos no canal. Use o rolador da ficha para uma jogada reservada.',
               },
               {
                 name: 'No canal',
@@ -321,7 +320,7 @@ export function formatHelp(topic: unknown = 'inicio', origin?: string): DiscordM
               {
                 name: '3 · Sua conta e seu personagem',
                 value:
-                  'Use !login para vincular a conta; depois !ficha, !skills, !campanhas ou !acao Nome da ação. Respostas e rolagens aparecem no canal.',
+                  'Use !login para vincular a conta; depois !ficha, !skills ou !acao Nome da ação. Respostas e rolagens aparecem no canal.',
               },
               {
                 name: 'Leia cada dado',
@@ -334,13 +333,10 @@ export function formatHelp(topic: unknown = 'inicio', origin?: string): DiscordM
     embeds: [
       {
         title: `Inferus · ${helpTopics.find((t) => t.value === selected)?.name}`,
-        description:
-          selected === 'campanhas'
-            ? 'Vincule a conta com !login e escolha sua mesa. Comandos e registros consultados ficam públicos no canal.'
-            : 'Sua mesa. Seus dados. Use !ajuda campanhas ou !ajuda personagem para continuar.',
+        description: 'Sua mesa. Seus dados. Use !ajuda personagem para continuar.',
         color: 0xb79be7,
         fields,
-        footer: { text: 'INFERUS · !ajuda campanhas · !ajuda personagem · !ajuda expressoes' },
+        footer: { text: 'INFERUS · !ajuda personagem · !ajuda expressoes' },
       },
     ],
     ...siteButton(origin),

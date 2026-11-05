@@ -1,6 +1,18 @@
 /** Shared by the website and the bot so examples stay in sync. */
-export const commandGroups = ['Todos', 'Dados', 'Personagem', 'Campanha', 'Conta'] as const;
+export const commandGroups = ['Todos', 'Dados', 'Personagem', 'Conta'] as const;
 export const commandCatalog = [
+  {
+    group: 'Personagem',
+    command: '!fichas',
+    title: 'Encontrar suas fichas',
+    description: 'Lista as fichas salvas na conta. Aceita número de página.',
+  },
+  {
+    group: 'Personagem',
+    command: '!ficha usar Nome completo',
+    title: 'Escolher personagem',
+    description: 'Troque de ficha pelo nome completo ou pelo ID exibido em !fichas.',
+  },
   {
     group: 'Dados',
     command: '!rolar 1d20+5 alvo:15 | Percepção',
@@ -33,50 +45,6 @@ export const commandCatalog = [
     description: 'Mostra as skills desbloqueadas. Use !skills 2 para continuar.',
   },
   {
-    group: 'Campanha',
-    command: '!campanhas',
-    title: 'Encontrar sua mesa',
-    description: 'Lista suas campanhas e seus IDs. Aceita número de página.',
-  },
-  {
-    group: 'Campanha',
-    command: '!campanha usar Nome da campanha',
-    title: 'Escolher campanha',
-    description:
-      'Use o nome completo ou ID. A ficha dessa campanha passa a ser seu personagem ativo.',
-  },
-  {
-    group: 'Campanha',
-    command: '!campanha',
-    title: 'Resumo da mesa',
-    description: 'Mostra a campanha selecionada, o estado da sessão e seu personagem.',
-  },
-  {
-    group: 'Campanha',
-    command: '!mesa',
-    title: 'Ver participantes',
-    description: 'Mostra jogadores e personagens da campanha selecionada.',
-  },
-  {
-    group: 'Campanha',
-    command: '!diario',
-    title: 'Ler o diário',
-    description: 'Publica os registros recentes no canal. Use !diario 2 para registros anteriores.',
-  },
-  {
-    group: 'Campanha',
-    command: '!anotar Encontramos a passagem secreta.',
-    title: 'Registrar na campanha',
-    description: 'Salva uma mensagem no diário, com seu nome de mesa. Até 300 caracteres.',
-  },
-  {
-    group: 'Campanha',
-    command: '!sessao iniciar',
-    title: 'Controlar a sessão',
-    description:
-      'Só o mestre. Aceita iniciar, pausar, retomar ou encerrar. Encerrar mantém os dados e permite reabrir.',
-  },
-  {
     group: 'Conta',
     command: '!login',
     title: 'Conectar sua conta',
@@ -84,8 +52,8 @@ export const commandCatalog = [
   },
   {
     group: 'Conta',
-    command: '!ajuda campanhas',
+    command: '!ajuda personagem',
     title: 'Ajuda por assunto',
-    description: 'Também aceita personagem, expressoes e privacidade.',
+    description: 'Também aceita expressoes e privacidade.',
   },
 ] as const;

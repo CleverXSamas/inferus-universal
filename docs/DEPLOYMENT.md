@@ -70,7 +70,7 @@ Os comandos leem as variáveis do ambiente; não carregam `.env` automaticamente
 ## Verificar o deploy
 
 - O deploy web precisa responder a `/api/health` e reportar armazenamento `mysql`; o endpoint verifica a conexão e retorna 503 se o banco estiver indisponível.
-- Entre via Manus e salve uma ficha. Abra a conta em outra sessão de navegador e confira a ficha e as campanhas.
+- Entre via Manus e salve uma ficha. Abra a conta em outra sessão de navegador e confira a ficha e sua árvore.
 - Reinicie o serviço web e confirme que os dados permanecem no MySQL.
 - O log do bot deve confirmar conexão ao Discord; envie `!rolar 2d20kh1+5` no servidor em que foi instalado.
 - Confirme que o comando digitado e o resultado permanecem visíveis para todos no canal.

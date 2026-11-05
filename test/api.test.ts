@@ -16,53 +16,21 @@ test('HTTP: permissões, erros assíncronos, CSRF e proteção de arquivos', asy
     assert.equal((await fetch(origin + '/api/missing')).status, 404);
     assert.equal((await fetch(origin + '/api/sheets')).status, 401);
     assert.equal(
-      (await post('/api/campaigns/join', { inviteToken: 'invalid', name: 'Intruder' })).status,
-      400,
-    );
-    assert.equal(
-      (await post('/api/roll', { expression: '1d6' }, { origin: 'https://foreign.test' })).status,
+      (await post('/api/sheets', { expression: '1d6' }, { origin: 'https://foreign.test' })).status,
       403,
     );
     assert.equal((await fetch(origin + '/api/auth/logout')).status, 404);
     assert.equal((await fetch(origin + '/%2e%2e%2fpackage.json')).status, 403);
-    assert.equal((await post('/api/roll', [])).status, 400);
-    assert.equal((await post('/api/roll', { expression: 'x'.repeat(256 * 1024) })).status, 413);
-    const c = await (await post('/api/campaigns', { name: 'Mesa', dmName: 'DM' })).json();
-    assert.equal(
-      (await post('/api/campaigns/join', { inviteToken: c.inviteToken, name: 'DM' })).status,
-      400,
-    );
-    const guest = await (
-      await post('/api/campaigns/join', { inviteToken: c.inviteToken, name: 'Player' })
-    ).json();
-    assert.equal(
-      (
-        await post('/api/campaigns/status', {
-          campaignId: c.state.id,
-          sessionToken: guest.sessionToken,
-          status: 'active',
-        })
-      ).status,
-      400,
-    );
-    assert.equal(
-      (
-        await post('/api/campaigns/revoke', {
-          campaignId: c.state.id,
-          sessionToken: c.sessionToken,
-        })
-      ).status,
-      200,
-    );
-    assert.equal(
-      (
-        await post('/api/campaigns/state', {
-          campaignId: c.state.id,
-          sessionToken: guest.sessionToken,
-        })
-      ).status,
-      200,
-    );
+    assert.equal((await post('/api/missing', [])).status, 404);
+    assert.equal((await post('/api/sheets', { expression: 'x'.repeat(256 * 1024) })).status, 401);
+    for (const path of [
+      '/api/campaigns',
+      '/api/campaigns/join',
+      '/api/roll',
+      '/api/history',
+      '/api/presets',
+    ])
+      assert.equal((await post(path, {})).status, 404);
   } finally {
     await new Promise<void>((r, reject) => app.server.close((e) => (e ? reject(e) : r())));
     await app.close();

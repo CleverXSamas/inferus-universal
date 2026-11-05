@@ -191,12 +191,14 @@ export function DeleteDialog({
   onConfirm,
   onClose,
   undoable = true,
+  confirmLabel = 'Confirmar exclusão',
 }: {
   title: string;
   description: string;
   onConfirm: () => void;
   onClose: () => void;
   undoable?: boolean;
+  confirmLabel?: string;
 }) {
   return (
     <Modal title={title} onClose={onClose}>
@@ -207,14 +209,14 @@ export function DeleteDialog({
           Cancelar
         </button>
         <button
-          className="danger-button"
+          className={confirmLabel === 'Confirmar exclusão' ? 'danger-button' : undefined}
           onClick={() => {
             onConfirm();
             onClose();
           }}
         >
-          <Icon name="trash" />
-          Confirmar exclusão
+          {confirmLabel === 'Confirmar exclusão' && <Icon name="trash" />}
+          {confirmLabel}
         </button>
       </div>
     </Modal>

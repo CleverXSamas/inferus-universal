@@ -45,8 +45,9 @@ A ficha possui “Rolar dados” na barra de ferramentas. Rolagens de ações e 
 
 O painel permite outra expressão, nova rolagem e atalhos d20/d6/atributos. Referências de fórmula continuam sendo resolvidas pelos valores atuais da ficha. Falhas aparecem no próprio painel. No celular ele respeita a área disponível, possui rolagem interna e mantém os controles acessíveis. Não são dados 3D nem um envio automático ao Discord.
 
-O painel usa o formato simples do Dado Aberto: total, descrição legível, valores dos dados e modificador juntos, ID e horário. A fórmula de entrada não se repete no resultado. Rolagens possuem uma animação curta, desativada pela preferência de movimento reduzido. O botão de som é compartilhado com o Dado Aberto e sua preferência persiste neste navegador. Os resultados do painel são temporários e não alteram valores da ficha automaticamente. O comportamento se inspira no [Digital Dice do D&D Beyond](https://dndbeyond-support.wizards.com/hc/en-us/articles/7747201888404-Digital-Dice-How-to-roll-your-free-or-premium-Digital-Dice).
+O painel usa o formato simples de resultado: total, descrição legível, valores dos dados e modificador juntos, ID e horário. A fórmula de entrada não se repete no resultado. Rolagens possuem uma animação curta, desativada pela preferência de movimento reduzido. A preferência de som da ficha persiste neste navegador. Os resultados do painel são temporários e não alteram valores da ficha automaticamente. O comportamento se inspira no [Digital Dice do D&D Beyond](https://dndbeyond-support.wizards.com/hc/en-us/articles/7747201888404-Digital-Dice-How-to-roll-your-free-or-premium-Digital-Dice).
 
-## Ficha, árvore e campanha integradas
 
-Cada ficha recebe uma árvore própria, salva junto do documento da conta e da campanha. O mapa permite pan/zoom, inspeção e desbloqueios por pré-requisito. “Usar árvore do estúdio” importa uma cópia do editor; não substitui árvores de outras fichas. O dono edita o personagem de campanha e o DM consulta em modo somente leitura. Os demais jogadores recebem apenas um resumo de identificação. Consulte [Campanhas](CAMPAIGNS.md) e [Discord](DISCORD.md) para vínculo explícito, revisão de salvamento e comandos do personagem ativo.
+## Navegação e arquivos
+
+O site abre diretamente na ficha. Busque campos por nome ou referência; a busca não altera valores nem fórmulas. Exporte a ficha e importe seu JSON (até 128 KB), com validação, confirmação e Desfazer. A árvore própria acompanha o arquivo. No estúdio, Localizar skill no mapa seleciona a skill e centraliza a câmera.

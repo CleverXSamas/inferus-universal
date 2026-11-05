@@ -1,7 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import worker from '../edge/index.js';
-import { createEdgeCampaignStore } from '../edge/campaigns.js';
 import { sqliteD1 } from './helpers/d1.js';
 import type { Env } from '../edge/types.js';
 const origin = 'https://inferus.test';
@@ -25,43 +24,7 @@ function request(
     body: data === undefined ? undefined : JSON.stringify(data),
   });
 }
-test('D1: limite concorrente, permissões, rotação e retomada da conta', async () => {
-  const db = sqliteD1(),
-    store = createEdgeCampaignStore(db);
-  try {
-    const c = await store.create('Mesa', 'DM', 'owner');
-    await assert.rejects(store.join(c.inviteToken, 'DM', 'attacker'), /Nome já utilizado/);
-    const p = await store.join(c.inviteToken, 'Pessoa', 'player');
-    await assert.rejects(store.status(c.state.id, p.sessionToken, 'active', 'player'), /DM/);
-    const results = await Promise.allSettled(
-      Array.from({ length: 15 }, (_, i) => store.join(c.inviteToken, `Pessoa ${i}`, `account${i}`)),
-    );
-    assert.equal(results.filter((r) => r.status === 'fulfilled').length, 8);
-    assert.equal((await store.get(c.state.id, '', 'owner')).state.participants.length, 10);
-    await store.revoke(c.state.id, '', 'owner');
-    await assert.rejects(store.join(c.inviteToken, 'New'), /revogado/);
-    assert.equal((await store.get(c.state.id, '', 'player')).role, 'player');
-    const pid = (await store.get(c.state.id, '', 'player')).participantId;
-    await store.remove(c.state.id, '', pid, 'owner');
-    await assert.rejects(store.get(c.state.id, p.sessionToken, 'player'), /Sessão/);
-    const rotated = await store.rotate(c.state.id, '', 'owner');
-    assert.notEqual(rotated.inviteToken, c.inviteToken);
-    const guest = await store.join(rotated.inviteToken, 'Guest');
-    await store.claim(c.state.id, guest.sessionToken, 'new-owner');
-    assert.equal((await store.get(c.state.id, '', 'new-owner')).role, 'player');
-    await assert.rejects(store.get(c.state.id, guest.sessionToken), /Sessão/);
-    const resumed = createEdgeCampaignStore(db);
-    assert.equal((await resumed.list('owner')).length, 1);
-    assert.equal((await resumed.list('stranger')).length, 0);
-    assert.equal(
-      JSON.stringify((await resumed.get(c.state.id, '', 'owner')).state).includes('openId'),
-      false,
-    );
-  } finally {
-    db.close();
-  }
-});
-test('Worker: fichas, histórico e árvores persistem e respeitam o dono', async () => {
+test('Worker: fichas e árvores persistem e respeitam o dono', async () => {
   const db = sqliteD1(),
     env: Env = { DB: db };
   const call = (path: string, owner?: string, data?: unknown, headers?: Record<string, string>) =>
@@ -76,9 +39,14 @@ test('Worker: fichas, histórico e árvores persistem e respeitam o dono', async
     assert.equal((await call('/api/sheets', 'owner', { sheet })).status, 200);
     assert.deepEqual(await (await call('/api/sheets', 'owner')).json(), [sheet]);
     assert.deepEqual(await (await call('/api/sheets', 'stranger')).json(), []);
-    await call('/api/roll', 'owner', { expression: '1d6' });
-    assert.equal(((await (await call('/api/history', 'owner')).json()) as any[]).length, 1);
-    assert.deepEqual(await (await call('/api/history', 'stranger')).json(), []);
+    for (const path of [
+      '/api/roll',
+      '/api/history',
+      '/api/presets',
+      '/api/campaigns',
+      '/api/campaigns/tabletop',
+    ])
+      assert.equal((await call(path, 'owner')).status, 404);
     const bought = (await (
       await call('/api/tree/buy', 'owner', { character: 'hero', level: 2, nodeId: 'centro' })
     ).json()) as any;
@@ -306,11 +274,7 @@ test('configuração pública expõe somente dados de conexão; erros do Discord
       '!rolar',
       '!r',
       '!ajuda',
-      '!campanha',
-      '!mesa',
-      '!diario',
-      '!sessao',
-      '!anotar',
+      '!fichas',
       '!acoes',
       '!vincular',
     ])

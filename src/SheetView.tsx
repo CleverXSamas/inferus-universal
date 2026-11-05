@@ -1,4 +1,4 @@
-import { withCharacterTree } from '../packages/campaign-characters';
+import { withCharacterTree } from '../packages/character-tree';
 import { requestJSON } from './http';
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -421,24 +421,16 @@ function CharacterField({
     </div>
   );
 }
-export function SheetView({
-  initialSheet,
-  onCampaignSave,
-}: { initialSheet?: Sheet | null; onCampaignSave?: (sheet: Sheet) => Promise<void> } = {}) {
+export function SheetView() {
   const { user } = useAccount(),
-    history = useHistory<Sheet | null>(() =>
-      initialSheet === undefined
-        ? loadLocal()
-        : initialSheet
-          ? withCharacterTree(initialSheet)
-          : null,
-    ),
+    history = useHistory<Sheet | null>(loadLocal),
     sheet = history.value;
   const [saved, setSaved] = useState<Sheet[]>([]),
     [mode, setMode] = useState('all'),
     [query, setQuery] = useState(''),
+    [fieldQuery, setFieldQuery] = useState(''),
     [choosing, setChoosing] = useState(!sheet),
-    [editing, setEditing] = useState(!onCampaignSave),
+    [editing, setEditing] = useState(true),
     [notice, setNotice] = useState(''),
     [error, setError] = useState(''),
     [busy, setBusy] = useState(false),
@@ -450,6 +442,7 @@ export function SheetView({
       description: string;
       action: () => void;
       undoable?: boolean;
+      confirmLabel?: string;
     } | null>(null),
     [savedLocally, setSavedLocally] = useState(true),
     [activeSection, setActiveSection] = useState(''),
@@ -457,15 +450,21 @@ export function SheetView({
     [diceRoll, setDiceRoll] = useState<SheetRoll | null>(null),
     [focusDiceInput, setFocusDiceInput] = useState(false);
   const [soundOn, toggleSound] = useDiceSound();
+  const importRef = useRef<HTMLInputElement>(null);
+  const matchesField = (f: Field) =>
+    `${f.label} ${f.id}`
+      .toLocaleLowerCase('pt-BR')
+      .includes(fieldQuery.trim().toLocaleLowerCase('pt-BR'));
   const diceTrigger = useRef<HTMLElement | null>(null);
   useEffect(() => {
     setDiceRoll(null);
+    setFieldQuery('');
   }, [sheet?.id]);
   const fieldCount = sheet?.sections.reduce((sum, s) => sum + s.fields.length, 0) ?? 0;
   useEffect(() => {
     let active = true;
     setSaved([]);
-    if (user && !onCampaignSave)
+    if (user)
       accountSheets()
         .then((s) => {
           if (active) setSaved(s);
@@ -478,7 +477,6 @@ export function SheetView({
     };
   }, [user?.id]);
   useEffect(() => {
-    if (onCampaignSave) return;
     try {
       if (sheet) localStorage.setItem(localKey, JSON.stringify(sheet));
       setSavedLocally(true);
@@ -594,48 +592,14 @@ export function SheetView({
   };
   return (
     <div className="character-studio editor-workspace">
-      {onCampaignSave && (
-        <div className="campaign-character-save">
-          <p>
-            Ficha e árvore compartilhadas somente com você e o DM. Alterações ficam em rascunho até
-            salvar.
-          </p>
-          <button
-            disabled={busy || !sheet}
-            onClick={async () => {
-              if (!sheet || busy) return;
-              setBusy(true);
-              try {
-                await onCampaignSave(withCharacterTree(sheet));
-                setNotice('Ficha e árvore salvas na campanha.');
-                setError('');
-              } catch (e) {
-                setError((e as Error).message);
-              } finally {
-                setBusy(false);
-              }
-            }}
-          >
-            {busy ? 'Salvando…' : 'Salvar ficha e árvore na campanha'}
-          </button>
-        </div>
-      )}
       <div className="studio-toolbar">
         <div className="studio-title">
           <span className="studio-symbol">
             <Icon name="skill" size={25} />
           </span>
           <div>
-            <span className="eyebrow">
-              {onCampaignSave ? 'PERSONAGEM DA CAMPANHA' : 'ATELIÊ DE PERSONAGENS'}
-            </span>
-            <h2>
-              {choosing
-                ? 'Uma ficha com a sua identidade.'
-                : onCampaignSave
-                  ? 'Sua ficha na mesa.'
-                  : 'Seu personagem, por inteiro.'}
-            </h2>
+            <span className="eyebrow">ATELIÊ DE PERSONAGENS</span>
+            <h2>{choosing ? 'Uma ficha com a sua identidade.' : 'Seu personagem, por inteiro.'}</h2>
           </div>
         </div>
         <div className="studio-actions">
@@ -659,6 +623,38 @@ export function SheetView({
           )}
 
           <HistoryButtons history={history} />
+          <button className="quiet compact" onClick={() => importRef.current?.click()}>
+            Importar ficha
+          </button>
+          <input
+            ref={importRef}
+            type="file"
+            accept="application/json,.json"
+            hidden
+            aria-label="Arquivo da ficha"
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              e.target.value = '';
+              if (!file) return;
+              try {
+                if (file.size > 128 * 1024) throw new Error('Use um arquivo de até 128 KB.');
+                const next = withCharacterTree(validateSheet(JSON.parse(await file.text())));
+                evaluateSheet(next);
+                setConfirm({
+                  title: 'Importar esta ficha?',
+                  confirmLabel: 'Importar ficha',
+                  description: 'Sua edição atual será substituída. Você poderá desfazer a troca.',
+                  action: () => {
+                    change(next);
+                    setChoosing(false);
+                    setNotice('Ficha e árvore importadas.');
+                  },
+                });
+              } catch (e) {
+                setError((e as Error).message);
+              }
+            }}
+          />
           {sheet && !choosing && (
             <>
               <button className="quiet compact" onClick={() => setChoosing(true)}>
@@ -681,7 +677,7 @@ export function SheetView({
           )}
         </div>
       </div>
-      {user && !onCampaignSave && (
+      {user && (
         <div className="account-sheet-bar">
           <label>
             Fichas da conta
@@ -917,11 +913,7 @@ export function SheetView({
                 <p>
                   <span className="save-indicator">
                     <i />
-                    {onCampaignSave
-                      ? 'Rascunho da ficha da campanha'
-                      : savedLocally
-                        ? 'Cópia salva neste navegador'
-                        : 'Não foi possível salvar'}
+                    {savedLocally ? 'Cópia salva neste navegador' : 'Não foi possível salvar'}
                   </span>
                   {!user && ' · Entre para salvar na conta.'}
                 </p>
@@ -1131,166 +1123,200 @@ export function SheetView({
                     </div>
                   </section>
                 )}
-                {sheet.sections.map((s, si) => (
-                  <section
-                    id={`character-section-${s.id}`}
-                    className={`character-section ${activeSection === s.id ? 'is-active' : ''}`}
-                    key={s.id}
-                  >
-                    <div className="character-section-heading">
-                      <span className="section-number">{String(si + 1).padStart(2, '0')}</span>
-                      <div>
-                        {editing ? (
-                          <input
-                            aria-label={`Nome da seção ${s.label}`}
-                            maxLength={120}
-                            value={s.label}
-                            onChange={(e) =>
-                              change({
-                                ...sheet,
-                                sections: sheet.sections.map((x) =>
-                                  x.id === s.id ? { ...x, label: e.target.value } : x,
-                                ),
-                              })
-                            }
-                          />
-                        ) : (
-                          <h3>{s.label}</h3>
-                        )}
-                        <small>
-                          {s.fields.length} campos ·{' '}
-                          {editing ? 'construa do seu jeito' : 'pronto para a sessão'}
-                        </small>
-                      </div>
-                      <div className="section-tools">
-                        {editing && (
-                          <>
+                <div className="sheet-field-search">
+                  <label>
+                    Buscar campos na ficha
+                    <input
+                      type="search"
+                      value={fieldQuery}
+                      onChange={(e) => setFieldQuery(e.target.value)}
+                      placeholder="Nome ou referência do campo"
+                    />
+                  </label>
+                  {fieldQuery && (
+                    <button className="quiet" onClick={() => setFieldQuery('')}>
+                      Limpar busca
+                    </button>
+                  )}
+                </div>
+                {fieldQuery && !sheet.sections.some((s) => s.fields.some(matchesField)) && (
+                  <p className="sheet-empty" role="status">
+                    Nenhum campo encontrado. Tente outro nome ou limpe a busca.
+                  </p>
+                )}
+                {sheet.sections.map(
+                  (s, si) =>
+                    (!fieldQuery || s.fields.some(matchesField)) && (
+                      <section
+                        id={`character-section-${s.id}`}
+                        className={`character-section ${activeSection === s.id ? 'is-active' : ''}`}
+                        key={s.id}
+                      >
+                        <div className="character-section-heading">
+                          <span className="section-number">{String(si + 1).padStart(2, '0')}</span>
+                          <div>
+                            {editing ? (
+                              <input
+                                aria-label={`Nome da seção ${s.label}`}
+                                maxLength={120}
+                                value={s.label}
+                                onChange={(e) =>
+                                  change({
+                                    ...sheet,
+                                    sections: sheet.sections.map((x) =>
+                                      x.id === s.id ? { ...x, label: e.target.value } : x,
+                                    ),
+                                  })
+                                }
+                              />
+                            ) : (
+                              <h3>{s.label}</h3>
+                            )}
+                            <small>
+                              {s.fields.length} campos ·{' '}
+                              {editing ? 'construa do seu jeito' : 'pronto para a sessão'}
+                            </small>
+                          </div>
+                          <div className="section-tools">
+                            {editing && (
+                              <>
+                                <button
+                                  className="icon-btn"
+                                  disabled={si === 0}
+                                  aria-label={`Mover seção ${s.label} para cima`}
+                                  onClick={() => {
+                                    const sections = [...sheet.sections];
+                                    [sections[si - 1], sections[si]] = [
+                                      sections[si],
+                                      sections[si - 1],
+                                    ];
+                                    change({ ...sheet, sections });
+                                  }}
+                                >
+                                  ↑
+                                </button>
+                                <button
+                                  className="icon-btn"
+                                  disabled={si === sheet.sections.length - 1}
+                                  aria-label={`Mover seção ${s.label} para baixo`}
+                                  onClick={() => {
+                                    const sections = [...sheet.sections];
+                                    [sections[si], sections[si + 1]] = [
+                                      sections[si + 1],
+                                      sections[si],
+                                    ];
+                                    change({ ...sheet, sections });
+                                  }}
+                                >
+                                  ↓
+                                </button>
+                                <button
+                                  className="icon-btn"
+                                  aria-label={`Remover seção ${s.label}`}
+                                  onClick={() =>
+                                    setConfirm({
+                                      title: `Excluir seção ${s.label}?`,
+                                      description: `Esta seção e seus ${s.fields.length} campos serão removidos da ficha.`,
+                                      action: () =>
+                                        change({
+                                          ...sheet,
+                                          sections: sheet.sections.filter((x) => x.id !== s.id),
+                                        }),
+                                    })
+                                  }
+                                >
+                                  <Icon name="trash" size={15} />
+                                </button>
+                              </>
+                            )}
                             <button
-                              className="icon-btn"
-                              disabled={si === 0}
-                              aria-label={`Mover seção ${s.label} para cima`}
-                              onClick={() => {
-                                const sections = [...sheet.sections];
-                                [sections[si - 1], sections[si]] = [sections[si], sections[si - 1]];
-                                change({ ...sheet, sections });
-                              }}
-                            >
-                              ↑
-                            </button>
-                            <button
-                              className="icon-btn"
-                              disabled={si === sheet.sections.length - 1}
-                              aria-label={`Mover seção ${s.label} para baixo`}
-                              onClick={() => {
-                                const sections = [...sheet.sections];
-                                [sections[si], sections[si + 1]] = [sections[si + 1], sections[si]];
-                                change({ ...sheet, sections });
-                              }}
-                            >
-                              ↓
-                            </button>
-                            <button
-                              className="icon-btn"
-                              aria-label={`Remover seção ${s.label}`}
+                              className="icon-btn collapse-button"
+                              aria-label={`${collapsed.has(s.id) ? 'Expandir' : 'Recolher'} seção ${s.label}`}
+                              aria-expanded={!collapsed.has(s.id)}
                               onClick={() =>
-                                setConfirm({
-                                  title: `Excluir seção ${s.label}?`,
-                                  description: `Esta seção e seus ${s.fields.length} campos serão removidos da ficha.`,
-                                  action: () =>
-                                    change({
-                                      ...sheet,
-                                      sections: sheet.sections.filter((x) => x.id !== s.id),
-                                    }),
+                                setCollapsed((old) => {
+                                  const n = new Set(old);
+                                  n.has(s.id) ? n.delete(s.id) : n.add(s.id);
+                                  return n;
                                 })
                               }
                             >
-                              <Icon name="trash" size={15} />
+                              {collapsed.has(s.id) ? '+' : '−'}
                             </button>
-                          </>
-                        )}
-                        <button
-                          className="icon-btn collapse-button"
-                          aria-label={`${collapsed.has(s.id) ? 'Expandir' : 'Recolher'} seção ${s.label}`}
-                          aria-expanded={!collapsed.has(s.id)}
-                          onClick={() =>
-                            setCollapsed((old) => {
-                              const n = new Set(old);
-                              n.has(s.id) ? n.delete(s.id) : n.add(s.id);
-                              return n;
-                            })
-                          }
-                        >
-                          {collapsed.has(s.id) ? '+' : '−'}
-                        </button>
-                      </div>
-                    </div>
-                    {!collapsed.has(s.id) && (
-                      <>
-                        <div className="character-field-grid">
-                          {s.fields.map((f) => (
-                            <CharacterField
-                              key={f.id}
-                              field={f}
-                              editing={editing}
-                              value={calculated.values[f.id]}
-                              onUpdate={(patch) => updateField(s.id, f.id, patch)}
-                              onDelete={() =>
-                                setConfirm({
-                                  title: `Excluir ${f.label}?`,
-                                  description:
-                                    'O campo será removido. Se alguma fórmula usa esta referência, ajuste-a depois da exclusão.',
-                                  action: () =>
+                          </div>
+                        </div>
+                        {(!collapsed.has(s.id) || !!fieldQuery) && (
+                          <>
+                            <div className="character-field-grid">
+                              {s.fields.filter(matchesField).map((f) => (
+                                <CharacterField
+                                  key={f.id}
+                                  field={f}
+                                  editing={editing}
+                                  value={calculated.values[f.id]}
+                                  onUpdate={(patch) => updateField(s.id, f.id, patch)}
+                                  onDelete={() =>
+                                    setConfirm({
+                                      title: `Excluir ${f.label}?`,
+                                      description:
+                                        'O campo será removido. Se alguma fórmula usa esta referência, ajuste-a depois da exclusão.',
+                                      action: () =>
+                                        change({
+                                          ...sheet,
+                                          sections: sheet.sections.map((x) =>
+                                            x.id === s.id
+                                              ? {
+                                                  ...x,
+                                                  fields: x.fields.filter((v) => v.id !== f.id),
+                                                }
+                                              : x,
+                                          ),
+                                        }),
+                                    })
+                                  }
+                                  onRoll={() => playAction(f)}
+                                />
+                              ))}
+                            </div>
+                            {editing &&
+                              (composer === s.id ? (
+                                <FieldComposer
+                                  onClose={() => setComposer(null)}
+                                  onCreate={(type, label) => {
                                     change({
                                       ...sheet,
                                       sections: sheet.sections.map((x) =>
                                         x.id === s.id
-                                          ? { ...x, fields: x.fields.filter((v) => v.id !== f.id) }
+                                          ? {
+                                              ...x,
+                                              fields: [
+                                                ...x.fields,
+                                                ...uniqueFields(sheet, [newField(type, label)]),
+                                              ],
+                                            }
                                           : x,
                                       ),
-                                    }),
-                                })
-                              }
-                              onRoll={() => playAction(f)}
-                            />
-                          ))}
-                        </div>
-                        {editing &&
-                          (composer === s.id ? (
-                            <FieldComposer
-                              onClose={() => setComposer(null)}
-                              onCreate={(type, label) => {
-                                change({
-                                  ...sheet,
-                                  sections: sheet.sections.map((x) =>
-                                    x.id === s.id
-                                      ? {
-                                          ...x,
-                                          fields: [
-                                            ...x.fields,
-                                            ...uniqueFields(sheet, [newField(type, label)]),
-                                          ],
-                                        }
-                                      : x,
-                                  ),
-                                });
-                                setComposer(null);
-                                setNotice('Campo adicionado à ficha.');
-                              }}
-                            />
-                          ) : (
-                            <button
-                              className="section-add-field"
-                              aria-label={`Adicionar campo em ${s.label}`}
-                              onClick={() => setComposer(s.id)}
-                            >
-                              <Icon name="plus" size={15} />
-                              Adicionar campo <span>número, texto, recurso, fórmula e mais</span>
-                            </button>
-                          ))}
-                      </>
-                    )}
-                  </section>
-                ))}
+                                    });
+                                    setComposer(null);
+                                    setNotice('Campo adicionado à ficha.');
+                                  }}
+                                />
+                              ) : (
+                                <button
+                                  className="section-add-field"
+                                  aria-label={`Adicionar campo em ${s.label}`}
+                                  onClick={() => setComposer(s.id)}
+                                >
+                                  <Icon name="plus" size={15} />
+                                  Adicionar campo{' '}
+                                  <span>número, texto, recurso, fórmula e mais</span>
+                                </button>
+                              ))}
+                          </>
+                        )}
+                      </section>
+                    ),
+                )}
               </div>
             </div>
           </>
@@ -1325,6 +1351,7 @@ export function SheetView({
           description={confirm.description}
           onConfirm={confirm.action}
           undoable={confirm.undoable}
+          confirmLabel={confirm.confirmLabel}
           onClose={() => setConfirm(null)}
         />
       )}

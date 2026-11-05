@@ -33,3 +33,5 @@
 - A seleção `active_kind=campaign` existente passa a representar a mesa e seu próprio personagem, sem migração ou nova credencial. A escolha pelo bot é pessoal e explícita; uma campanha sem personagem não herda a ficha de outra mesa.
 - O bot usa as mesmas permissões de participante/DM para consultar diário, registrar mensagens e controlar sessão. A interface de vínculo explica essas capacidades e a publicação das respostas no canal. Convites e remoção de membros permanecem no site.
 - Encerrar uma sessão preserva dados, bloqueia novas mensagens/entradas e pode ser revertido pelo DM. O backend Node e D1 aplica o mesmo comportamento.
+
+- Revisão V12: removidos Campanha, VTT e Dado Aberto por solicitação do usuário. Rolagens permanecem na ficha e no bot. APIs antigas retornam 404; links de interface antigos abrem a ficha. Migrações existentes são mantidas por compatibilidade. Ficha e árvore continuam privadas por conta, com vínculo Discord confirmado.

@@ -24,37 +24,6 @@ test('Worker: login ChatGPT, ficha persistente e logout', async ({ page, browser
     await context.close();
   }
 });
-test('Worker: campanha restaura após recarga e preserva papéis', async ({ page, browser }) => {
-  await page.goto('/');
-  await page.getByRole('button', { name: 'Campanha', exact: true }).click();
-  await page.getByLabel('Seu nome de mesa').fill('Guia');
-  await page.getByLabel('Nome da campanha').fill('Mesa D1');
-  await page.getByRole('button', { name: 'Criar como DM' }).click();
-  await expect(page.getByRole('heading', { name: 'Mesa D1' })).toBeVisible();
-  await page.getByText('Convites e controles do mestre', { exact: true }).click();
-  const invite = await page.getByLabel('Link de convite', { exact: true }).inputValue();
-  const context = await browser.newContext();
-  try {
-    const guest = await context.newPage();
-    await guest.goto(invite);
-    await guest.getByLabel('Seu nome de mesa').fill('Guia');
-    await guest.getByRole('button', { name: 'Entrar na campanha' }).click();
-    await expect(guest.getByRole('alert')).toContainText('Nome já utilizado');
-    await guest.getByLabel('Seu nome de mesa').fill('Aventureira');
-    await guest.getByRole('button', { name: 'Entrar na campanha' }).click();
-    await expect(guest.getByRole('heading', { name: 'Mesa D1' })).toBeVisible();
-    await expect(guest.getByRole('button', { name: 'Iniciar sessão' })).toHaveCount(0);
-    await page.reload();
-    await expect(page.getByRole('heading', { name: 'Mesa D1' })).toBeVisible();
-    await page.getByText('Convites e controles do mestre', { exact: true }).click();
-    await page.getByRole('button', { name: 'Revogar convite' }).click();
-    await page.getByRole('dialog').getByRole('button', { name: 'Confirmar', exact: true }).click();
-    await guest.reload();
-    await expect(guest.getByRole('heading', { name: 'Mesa D1' })).toBeVisible();
-  } finally {
-    await context.close();
-  }
-});
 test('Worker: remoção de slash limpa token e mantém conexão por prefixo pendente', async ({
   page,
 }) => {

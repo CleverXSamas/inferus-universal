@@ -1,12 +1,11 @@
 import { ApiError, hash, token, type Env } from './types.js';
-import { createEdgeCampaignStore } from './campaigns.js';
-import { withCharacterTree } from '../packages/campaign-characters/index.js';
+import { withCharacterTree } from '../packages/character-tree/index.js';
 import type { Sheet } from '../packages/sheet-engine/index.js';
 type Link = {
   owner_id: string;
   discord_id: string;
   display_name: string;
-  active_kind: 'sheet' | 'campaign' | null;
+  active_kind: string | null;
   active_id: string | null;
 };
 type Pair = {
@@ -51,7 +50,6 @@ async function verifyBot(request: Request, env: Env) {
   verified.set(key, now + 30000);
 }
 export function discordAccounts(env: Env) {
-  const campaigns = createEdgeCampaignStore(env.DB);
   async function choices(owner: string) {
     const sheets = await env.DB.prepare('SELECT id,document FROM edge_sheets WHERE owner_id=?')
       .bind(owner)
@@ -60,14 +58,6 @@ export function discordAccounts(env: Env) {
       key: `sheet:${row.id}`,
       label: `Ficha · ${(JSON.parse(row.document) as Sheet).name}`,
     }));
-    for (const campaign of await campaigns.list(owner)) {
-      const own = await campaigns.get(campaign.id, '', owner);
-      const p = own.state.participants.find((p) => p.id === own.participantId);
-      result.push({
-        key: `campaign:${campaign.id}`,
-        label: `${campaign.name} · ${p?.character?.name ?? 'Sem personagem vinculado'}`,
-      });
-    }
     return result;
   }
   return {
@@ -86,7 +76,9 @@ export function discordAccounts(env: Env) {
               discordId: link.discord_id,
               displayName: link.display_name,
               active:
-                link.active_kind && link.active_id ? `${link.active_kind}:${link.active_id}` : '',
+                link.active_kind === 'sheet' && link.active_id
+                  ? `${link.active_kind}:${link.active_id}`
+                  : '',
             }
           : null,
         pending: pair
@@ -154,7 +146,7 @@ export function discordAccounts(env: Env) {
         const available = await choices(owner),
           key = String(body.character ?? '');
         if (!available.some((c) => c.key === key))
-          throw new ApiError(403, 'Selecione uma ficha sua ou seu personagem de campanha.');
+          throw new ApiError(403, 'Selecione uma ficha salva na sua conta.');
         const split = key.indexOf(':');
         const result = await env.DB.prepare(
           'UPDATE edge_discord_accounts SET active_kind=?,active_id=? WHERE owner_id=?',
@@ -197,109 +189,50 @@ export function discordAccounts(env: Env) {
           );
         return { ok: true, pending: true };
       }
-      if (!['character', 'campaigns', 'campaign', 'session', 'note'].includes(body.action))
+      if (!['character', 'sheets', 'select-sheet'].includes(body.action))
         throw new ApiError(400, 'Ação do bot inválida.');
       const link = await env.DB.prepare('SELECT * FROM edge_discord_accounts WHERE discord_id=?')
         .bind(discordId)
         .first<Link>();
       if (!link)
         throw new ApiError(403, 'Use !login, vincule seu Discord e confirme a identidade no site.');
-      if (body.action === 'campaigns') {
-        const list = [];
-        for (const c of await campaigns.list(link.owner_id)) {
-          const own = await campaigns.get(c.id, '', link.owner_id);
-          list.push({
-            id: c.id,
-            name: own.state.name,
-            status: own.state.status,
-            participants: own.state.participants.length,
-            role: own.role,
-            character:
-              own.state.participants.find((p) => p.id === own.participantId)?.character?.name ??
-              null,
-            selected: link.active_kind === 'campaign' && link.active_id === c.id,
-          });
-        }
-        return {
-          campaigns: list.sort(
-            (a, b) => a.name.localeCompare(b.name, 'pt-BR') || a.id.localeCompare(b.id),
-          ),
-        };
-      }
-      if (['campaign', 'session', 'note'].includes(body.action)) {
-        let campaignId = link.active_kind === 'campaign' ? link.active_id : null;
-        if (body.action === 'campaign' && body.query !== undefined) {
-          const query = String(body.query).trim();
-          if (!query || query.length > 100)
-            throw new ApiError(400, 'Use !campanha usar Nome da campanha ou ID.');
-          const available = await campaigns.list(link.owner_id);
-          const exactId = available.find((c) => c.id === query);
-          const matches = exactId
-            ? [exactId]
-            : available.filter(
-                (c) => c.name.toLocaleLowerCase('pt-BR') === query.toLocaleLowerCase('pt-BR'),
-              );
-          if (matches.length !== 1)
-            throw new ApiError(
-              409,
-              matches.length
-                ? 'Há campanhas com o mesmo nome. Use o ID exibido em !campanhas.'
-                : 'Campanha não encontrada na sua conta. Use !campanhas e copie o nome completo ou ID.',
+      if (body.action === 'sheets' || body.action === 'select-sheet') {
+        const rows = await env.DB.prepare('SELECT id,document FROM edge_sheets WHERE owner_id=?')
+          .bind(link.owner_id)
+          .all<{ id: string; document: string }>();
+        const sheets = rows.results
+          .map((row) => ({
+            id: row.id,
+            name: (JSON.parse(row.document) as Sheet).name,
+            selected: link.active_kind === 'sheet' && link.active_id === row.id,
+          }))
+          .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR') || a.id.localeCompare(b.id));
+        if (body.action === 'sheets') return { sheets };
+        const query = typeof body.query === 'string' ? body.query.trim() : '';
+        if (!query || query.length > 120)
+          throw new ApiError(400, 'Use !ficha usar Nome completo ou ID.');
+        const exact = sheets.find((s) => s.id === query);
+        const matches = exact
+          ? [exact]
+          : sheets.filter(
+              (s) => s.name.toLocaleLowerCase('pt-BR') === query.toLocaleLowerCase('pt-BR'),
             );
-          campaignId = matches[0].id;
-          await campaigns.get(campaignId, '', link.owner_id);
-          const changed = await env.DB.prepare(
-            "UPDATE edge_discord_accounts SET active_kind='campaign',active_id=? WHERE owner_id=? AND discord_id=?",
-          )
-            .bind(campaignId, link.owner_id, discordId)
-            .run();
-          if (changed.meta.changes !== 1)
-            throw new ApiError(409, 'O vínculo mudou. Use !login novamente.');
-        }
-        if (!campaignId)
+        if (matches.length !== 1)
           throw new ApiError(
             409,
-            'Escolha sua mesa com !campanha usar Nome da campanha. Consulte !campanhas.',
+            matches.length
+              ? 'Há fichas com o mesmo nome. Use o ID mostrado em !fichas.'
+              : 'Ficha não encontrada na sua conta. Consulte !fichas.',
           );
-        // Every operation rechecks membership; the existing store enforces the DM role.
-        let own = await campaigns.get(campaignId, '', link.owner_id);
-        if (body.action === 'session') {
-          if (!['active', 'paused', 'closed'].includes(body.status))
-            throw new ApiError(400, 'Use !sessao iniciar, pausar, retomar ou encerrar.');
-          own = {
-            ...own,
-            state: await campaigns.status(campaignId, '', body.status, link.owner_id),
-          };
-        }
-        if (body.action === 'note') {
-          if (typeof body.text !== 'string' || !body.text.trim() || body.text.length > 300)
-            throw new ApiError(400, 'Use !anotar seguido de uma mensagem de até 300 caracteres.');
-          if (own.state.status === 'closed')
-            throw new ApiError(
-              409,
-              'A campanha está encerrada. Peça ao mestre para reabrir a sessão.',
-            );
-          await campaigns.event(campaignId, '', body.text, link.owner_id);
-          return { name: own.state.name };
-        }
-        return {
-          campaign: {
-            id: own.state.id,
-            name: own.state.name,
-            status: own.state.status,
-            role: own.role,
-            character:
-              own.state.participants.find((p) => p.id === own.participantId)?.character?.name ??
-              null,
-            participants: own.state.participants.map((p) => ({
-              name: p.name,
-              role: p.role,
-              character: p.character?.name ?? null,
-              self: p.id === own.participantId,
-            })),
-            events: own.state.events,
-          },
-        };
+        const selected = matches[0];
+        const changed = await env.DB.prepare(
+          "UPDATE edge_discord_accounts SET active_kind='sheet',active_id=? WHERE owner_id=? AND discord_id=?",
+        )
+          .bind(selected.id, link.owner_id, discordId)
+          .run();
+        if (changed.meta.changes !== 1)
+          throw new ApiError(409, 'Seu vínculo mudou. Use !login novamente.');
+        return { selected };
       }
       let sheet: Sheet | null = null;
       if (link.active_kind === 'sheet') {
@@ -309,13 +242,11 @@ export function discordAccounts(env: Env) {
           .bind(link.owner_id, link.active_id)
           .first<{ document: string }>();
         sheet = row ? JSON.parse(row.document) : null;
-      } else if (link.active_kind === 'campaign' && link.active_id) {
-        sheet = (await campaigns.character(link.active_id, '', undefined, link.owner_id)).sheet;
       }
       if (!sheet)
         throw new ApiError(
           404,
-          'Salve seu personagem na campanha selecionada ou escolha outra ficha na página Discord do site. Use !campanha para conferir a mesa.',
+          'Escolha uma ficha salva na página Discord do site. Use !login para abrir.',
         );
       const document = withCharacterTree(sheet);
       return {

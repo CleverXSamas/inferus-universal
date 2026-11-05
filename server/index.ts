@@ -1,17 +1,13 @@
-import { TabletopError } from '../packages/tabletop/index.js';
-import { CharacterError } from '../packages/campaign-characters/index.js';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { resolve, extname, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { roll, PRESETS, type RollRecord } from '../packages/dice-core/index.js';
 import {
   defaultPool,
   generateTree,
   buyNode,
   type GeneratedTree,
 } from '../packages/tree-core/index.js';
-import { createCampaignStore, type CampaignStatus } from './campaigns.js';
 import { createSheetStore } from './sheets.js';
 import { assertRuntimeConfiguration } from './config.js';
 import {
@@ -54,10 +50,8 @@ function json(res: ServerResponse, status: number, data: unknown) {
   res.end(JSON.stringify(data));
 }
 export function createApplication(options: { databaseUrl?: string } = {}) {
-  const history = new Map<string, RollRecord[]>(),
-    trees = new Map<string, GeneratedTree>();
-  const campaigns = createCampaignStore(options.databaseUrl),
-    sheets = createSheetStore(options.databaseUrl),
+  const trees = new Map<string, GeneratedTree>();
+  const sheets = createSheetStore(options.databaseUrl),
     root = resolve(process.cwd(), 'dist');
   async function handler(req: IncomingMessage, res: ServerResponse) {
     try {
@@ -82,11 +76,10 @@ export function createApplication(options: { databaseUrl?: string } = {}) {
         }
         return json(res, 200, {
           ok: true,
-          campaignStorage: campaigns.kind,
+          sheetStorage: options.databaseUrl ? 'mysql' : 'memory',
           authStorage: storageKind(),
         });
       }
-      if (url.pathname === '/api/presets' && req.method === 'GET') return json(res, 200, PRESETS);
       if (url.pathname === '/api/auth/login' && req.method === 'GET') return await begin(req, res);
       if (url.pathname === '/api/auth/callback' && req.method === 'GET') {
         const code = url.searchParams.get('code'),
@@ -108,20 +101,6 @@ export function createApplication(options: { databaseUrl?: string } = {}) {
         }
         return json(res, 200, await sheets.save(user.openId, b.sheet));
       }
-      if (url.pathname === '/api/roll' && req.method === 'POST') {
-        const b = await body(req),
-          r = roll(String(b.expression), {
-            user: String(b.user ?? 'demo'),
-            channel: String(b.channel ?? 'web'),
-            target: b.target === undefined ? undefined : Number(b.target),
-          });
-        const key = r.user ?? 'demo';
-        history.set(key, [r, ...(history.get(key) ?? [])].slice(0, 50));
-        if (history.size > 1000) history.delete(history.keys().next().value!);
-        return json(res, 200, r);
-      }
-      if (url.pathname === '/api/history' && req.method === 'GET')
-        return json(res, 200, history.get(url.searchParams.get('user') ?? 'demo') ?? []);
       if (
         (url.pathname === '/api/tree' && req.method === 'GET') ||
         (url.pathname === '/api/tree/buy' && req.method === 'POST')
@@ -138,68 +117,6 @@ export function createApplication(options: { databaseUrl?: string } = {}) {
         trees.set(key, tree);
         if (trees.size > 1000) trees.delete(trees.keys().next().value!);
         return json(res, 200, tree);
-      }
-      if (url.pathname === '/api/campaigns' && req.method === 'GET')
-        return json(res, 200, await campaigns.list((await requireUser(req)).openId));
-      if (url.pathname === '/api/campaigns' && req.method === 'POST') {
-        const b = await body(req),
-          user = await currentUser(req),
-          created = await campaigns.create(b.name, b.dmName, user?.openId);
-        return json(res, 201, { ...created, inviteUrl: `/campaign/${created.inviteToken}` });
-      }
-      if (url.pathname.startsWith('/api/campaigns/') && req.method === 'POST') {
-        const b = await body(req),
-          openId = (await currentUser(req))?.openId;
-        const locator = String(b.campaignId || b.inviteToken || ''),
-          session = String(b.sessionToken ?? '');
-        switch (url.pathname) {
-          case '/api/campaigns/join':
-            return json(
-              res,
-              200,
-              await campaigns.join(String(b.inviteToken ?? ''), b.name, openId),
-            );
-          case '/api/campaigns/tabletop':
-            return json(res, 200, await campaigns.tabletop(locator, session, openId, b.action));
-          case '/api/campaigns/state':
-            return json(res, 200, await campaigns.get(locator, session, openId));
-          case '/api/campaigns/character':
-            return json(
-              res,
-              200,
-              await campaigns.character(locator, session, b.participantId, openId),
-            );
-          case '/api/campaigns/character/save':
-            return json(
-              res,
-              200,
-              await campaigns.saveCharacter(locator, session, b.sheet, b.revision, openId),
-            );
-          case '/api/campaigns/event':
-            return json(res, 200, await campaigns.event(locator, session, b.body, openId));
-          case '/api/campaigns/status':
-            return json(
-              res,
-              200,
-              await campaigns.status(locator, session, String(b.status) as CampaignStatus, openId),
-            );
-          case '/api/campaigns/revoke':
-            return json(res, 200, await campaigns.revoke(locator, session, openId));
-          case '/api/campaigns/claim':
-            return json(
-              res,
-              200,
-              await campaigns.claim(locator, session, (await requireUser(req)).openId),
-            );
-          case '/api/campaigns/rotate':
-            return json(res, 200, await campaigns.rotate(locator, session, openId));
-          case '/api/campaigns/remove':
-            return json(
-              res,
-              200,
-              await campaigns.remove(locator, session, String(b.participantId), openId),
-            );
-        }
       }
       if (url.pathname.startsWith('/api/'))
         throw new HttpError(404, 'Rota de API inexistente ou método não permitido.');
@@ -234,7 +151,7 @@ export function createApplication(options: { databaseUrl?: string } = {}) {
       res.end(req.method === 'HEAD' ? undefined : data);
     } catch (e) {
       const status =
-        e instanceof HttpError || e instanceof CharacterError || e instanceof TabletopError
+        e instanceof HttpError
           ? e.status
           : e instanceof Error && e.message === 'Faça login para continuar.'
             ? 401
@@ -245,7 +162,7 @@ export function createApplication(options: { databaseUrl?: string } = {}) {
   return {
     server: createServer(handler),
     async close() {
-      await Promise.all([campaigns.close(), sheets.close()]);
+      await sheets.close();
     },
   };
 }

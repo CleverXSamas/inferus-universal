@@ -15,7 +15,6 @@ Não foram reutilizados logotipos, imagens, textos ou componentes desses produto
 - Navegação com ícones SVG, ferramenta ativa identificada e adaptação para abas horizontais no celular.
 - Rolador com atalhos d4–d20, envio por Enter, controle de som com estado acessível, resultado anunciado e histórico com horário.
 - Estúdio de personagens com catálogo filtrável, criação do zero, módulos, campos personalizados, índice de seções e modos de montagem/jogo.
-- Campanhas com guia inicial, participantes identificados e diário com hierarquia entre autor, mensagem e horário.
 - Estúdio de árvores com biblioteca, mapa React Flow com pan/zoom e drag, ramos nomeados e inspetor contextual. A criação, movimentação e exclusão preservam a integridade das conexões.
 - Foco de teclado visível, suporte a movimento reduzido e layouts verificados entre 360 e 1440 pixels.
 

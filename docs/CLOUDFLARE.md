@@ -2,7 +2,8 @@
 
 Publicação: https://inferus-universal.peneseretu.chatgpt.site
 
-A versão Sites executa a interface React e uma API HTTP em um único Worker, com armazenamento D1 para campanhas, fichas, histórico e árvores da API. O site não precisa de servidor Node. O bot por prefixo requer um processo contínuo separado. A alternativa Node/MySQL continua disponível no mesmo repositório, inclusive os comandos de build e testes originais.
+A interface React e a API HTTP executam em um Worker com D1 para fichas e árvores. O bot por prefixo usa um processo Node separado, conectado ao Gateway.
+
 
 ## Contas e dados
 
@@ -10,9 +11,7 @@ Nesta publicação, o login é gerenciado pelo Sites com a conta ChatGPT. A iden
 
 Os cabeçalhos de identidade deste adaptador só podem ser confiados atrás do gateway Sites. Para publicar o bundle diretamente em uma conta Cloudflare fora do Sites, configure antes um gateway de identidade confiável; não exponha este adaptador sem essa proteção.
 
-Fichas e campanhas vinculadas à conta são acessíveis apenas àquela identidade. A entrada de convidado continua disponível por convite e sessão privada. O estúdio de árvores mantém um rascunho local; fichas possuem árvores próprias, persistidas junto do personagem. O DM pode consultar fichas explicitamente vinculadas à sua campanha; o endpoint de árvores é persistente e isolado por conta. O histórico exibido pelo rolador local continua no navegador; o histórico gerado pela API é persistido por conta.
 
-As alterações de campanha usam compare-and-swap com revisão no D1: uma operação concorrente relê o estado antes de alterar. Isso mantém o limite de dez participantes e evita que remoções, mensagens ou alterações de status sobrescrevam umas às outras.
 
 ## Discord por prefixo
 
@@ -59,3 +58,5 @@ A plataforma confirma a publicação do site e seu armazenamento D1. `/api/healt
 A tela `/discord` mantém a conexão por prefixo como pendente até haver uma confirmação operacional externa. Publicar o site e remover comandos de barra não substituem a ativação do serviço contínuo.
 
 A migração aditiva 0001_discord_accounts cria vínculos Discord e códigos temporários. Não altera as tabelas anteriores. O login gerenciado Sites permanece; o vínculo Discord é confirmado na conta existente e não mescla identidades de provedores diferentes.
+
+A API atual mantém fichas e árvores isoladas por conta no D1. As tabelas históricas das migrações permanecem por compatibilidade; os endpoints de campanhas, rolagem avulsa, presets e histórico foram removidos. O login do Sites continua com ChatGPT e vínculo confirmado ao Discord.

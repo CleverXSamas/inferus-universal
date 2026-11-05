@@ -123,7 +123,7 @@ export function DiscordView() {
             motor da sua mesa, no Discord.
           </p>
           <div className="bot-feature-tags">
-            <span>Dados · personagens · campanhas</span>
+            <span>Dados · fichas · skill trees</span>
             <span>Resultados auditáveis</span>
             <span>Comando visível na conversa</span>
           </div>
@@ -497,8 +497,8 @@ export function DiscordView() {
           <article>
             <b>Mensagens públicas</b>
             <p>
-              O comando digitado permanece no canal. Para rolar em particular, use o Dado Aberto no
-              site.
+              O comando digitado permanece no canal. Para rolar em particular, use o rolador da
+              ficha no site.
             </p>
             <code>!r 1d20+5</code>
           </article>
@@ -531,10 +531,9 @@ export function DiscordView() {
             <summary>Posso acessar minhas fichas pelo bot?</summary>
             <p>
               Use !login para abrir o site, vincule seu Discord e escolha o personagem ativo. !ficha
-              mostra um resumo, !skills lista desbloqueios, !acao rola uma ação cadastrada e
-              !campanhas lista suas mesas. Use !campanha usar Nome da campanha para escolher, !mesa
-              para participantes e !diario para registros. O mestre controla a sessão com !sessao. O
-              acesso só é liberado depois da confirmação da identidade no site.
+              mostra um resumo, !skills lista desbloqueios, !acao rola uma ação cadastrada e !acoes
+              mostra os comandos disponíveis. O acesso só é liberado depois da confirmação da
+              identidade no site.
             </p>
           </details>
           <details>

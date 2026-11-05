@@ -10,7 +10,7 @@ await new Promise((resolve) => app.server.listen(0, '::', resolve));
 try {
   const response = await fetch(`http://127.0.0.1:${app.server.address().port}/api/health`);
   assert.equal(response.status, 200);
-  assert.equal((await response.json()).campaignStorage, 'memory');
+  assert.equal((await response.json()).sheetStorage, 'memory');
   console.log(
     'Imagem validada: usuário sem root, frontend/servidor disponíveis, listener IPv6 e endpoint HTTP funcionais.',
   );

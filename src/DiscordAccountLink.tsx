@@ -105,8 +105,8 @@ export function DiscordAccountLink() {
         <span className="eyebrow">SEU PERSONAGEM TAMBÉM NO DISCORD</span>
         <h3>Conecte sua conta ao Inferus.</h3>
         <p>
-          Consulte fichas, skills e campanhas e role ações do personagem. As respostas dos comandos
-          aparecem no canal; senhas e tokens não são pedidos no chat.
+          Consulte fichas e skills e role ações do personagem. As respostas dos comandos aparecem no
+          canal; senhas e tokens não são pedidos no chat.
         </p>
       </div>
       {!user ? (
@@ -172,9 +172,9 @@ export function DiscordAccountLink() {
                 {status.pending.discordId}. Confirme somente se esta é sua conta.
               </p>
               <p>
-                Ao confirmar, você permite consultar suas campanhas e seu personagem, registrar
-                mensagens no diário e, nas mesas em que é mestre, controlar a sessão pelo bot.
-                Comandos, resumos, registros consultados e rolagens ficam públicos no canal.
+                Ao confirmar, o bot poderá consultar os atributos, ações e skills da ficha
+                escolhida. Comandos, resumos e rolagens ficam públicos no canal. Campos de texto da
+                ficha não são enviados.
               </p>
               <button
                 disabled={busy}
@@ -200,7 +200,7 @@ export function DiscordAccountLink() {
                   onChange={(e) => setChoice(e.target.value)}
                 >
                   <option value="" disabled>
-                    Escolha uma ficha ou campanha
+                    Escolha uma ficha salva
                   </option>
                   {status.choices.map((c) => (
                     <option key={c.key} value={c.key}>
@@ -213,15 +213,11 @@ export function DiscordAccountLink() {
                 Usar este personagem no bot
               </button>
               {!status.choices.length && (
-                <p className="help-text">
-                  Salve uma ficha na conta ou participe de uma campanha para aparecer aqui.
-                </p>
+                <p className="help-text">Salve uma ficha na conta para aparecer aqui.</p>
               )}
               <p className="help-text">
-                !ficha · !skills · !acoes · !campanha · !mesa · !diario. A seleção é pessoal: vale
-                em todos os canais em que você usa o bot. Selecionar uma ficha avulsa sai do
-                contexto de campanha; use !campanha usar Nome para voltar à mesa. O bot usa a versão
-                salva no site.
+                !ficha · !skills · !acoes · !acao. Sua seleção é pessoal e vale em todos os canais.
+                O bot usa a versão salva da ficha e da árvore.
               </p>
             </form>
           )}

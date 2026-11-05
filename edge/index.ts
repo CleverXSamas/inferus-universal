@@ -1,7 +1,4 @@
-import { TabletopError } from '../packages/tabletop/index.js';
 import { discordAccounts } from './discord-accounts.js';
-import { CharacterError } from '../packages/campaign-characters/index.js';
-import { roll, PRESETS } from '../packages/dice-core/index.js';
 import { validateSheet, evaluateSheet, type Sheet } from '../packages/sheet-engine/index.js';
 import {
   defaultPool,
@@ -9,8 +6,6 @@ import {
   buyNode,
   type GeneratedTree,
 } from '../packages/tree-core/index.js';
-import type { CampaignStatus } from '../packages/campaign-types/index.js';
-import { createEdgeCampaignStore } from './campaigns.js';
 import { discordInteraction } from './discord.js';
 import { discordConfig, setupDiscord } from './discord-setup.js';
 import { ApiError, json, type Env } from './types.js';
@@ -114,19 +109,16 @@ export default {
         return json({ redirect: logoutUrl });
       if (url.pathname === '/api/health' && request.method === 'GET') {
         if (!env.DB) return json({ ok: false, error: 'Banco de dados não configurado.' }, 503);
-        await env.DB.prepare('SELECT id FROM edge_campaigns LIMIT 1').all();
+        await env.DB.prepare('SELECT id FROM edge_sheets LIMIT 1').all();
         return json({
           ok: true,
-          campaignStorage: 'd1',
           sheetStorage: 'd1',
-          historyStorage: 'd1',
           treeStorage: 'd1',
           authStorage: 'chatgpt',
           discordTransport: 'gateway-required',
           discordConfigured: Boolean(env.DISCORD_PUBLIC_KEY),
         });
       }
-      if (url.pathname === '/api/presets' && request.method === 'GET') return json(PRESETS);
       if (url.pathname === '/api/sheets') {
         const owner = requireOwner();
         if (request.method === 'GET') {
@@ -154,33 +146,6 @@ export default {
             .run();
           return json({ ok: true });
         }
-      }
-      if (url.pathname === '/api/roll' && request.method === 'POST') {
-        const b = await body(request),
-          r = roll(String(b.expression), {
-            user: user?.id,
-            channel: 'web',
-            target: b.target === undefined ? undefined : Number(b.target),
-          });
-        if (user)
-          await env.DB.batch([
-            env.DB.prepare(
-              'INSERT INTO edge_rolls (owner_id,id,document,created_at) VALUES (?,?,?,?)',
-            ).bind(user.id, r.roll_id, JSON.stringify(r), r.created_at),
-            env.DB.prepare(
-              'DELETE FROM edge_rolls WHERE owner_id=? AND id NOT IN (SELECT id FROM edge_rolls WHERE owner_id=? ORDER BY created_at DESC,id DESC LIMIT 50)',
-            ).bind(user.id, user.id),
-          ]);
-        return json(r);
-      }
-      if (url.pathname === '/api/history' && request.method === 'GET') {
-        const owner = requireOwner(),
-          rows = await env.DB.prepare(
-            'SELECT document FROM edge_rolls WHERE owner_id=? ORDER BY created_at DESC,id DESC LIMIT 50',
-          )
-            .bind(owner)
-            .all<{ document: string }>();
-        return json(rows.results.map((r) => JSON.parse(r.document)));
       }
       if (
         (url.pathname === '/api/tree' && request.method === 'GET') ||
@@ -219,50 +184,6 @@ export default {
         }
         throw new ApiError(409, 'A árvore recebeu alterações simultâneas. Tente novamente.');
       }
-      if (url.pathname.startsWith('/api/campaigns')) {
-        const campaigns = createEdgeCampaignStore(env.DB);
-        if (url.pathname === '/api/campaigns' && request.method === 'GET')
-          return json(await campaigns.list(requireOwner()));
-        if (request.method === 'POST') {
-          const b = await body(request),
-            locator = String(b.campaignId || b.inviteToken || ''),
-            session = String(b.sessionToken ?? '');
-          switch (url.pathname) {
-            case '/api/campaigns': {
-              const c = await campaigns.create(b.name, b.dmName, user?.id);
-              return json({ ...c, inviteUrl: `/campaign/${c.inviteToken}` }, 201);
-            }
-            case '/api/campaigns/join':
-              return json(await campaigns.join(String(b.inviteToken ?? ''), b.name, user?.id));
-            case '/api/campaigns/tabletop':
-              return json(await campaigns.tabletop(locator, session, user?.id, b.action));
-            case '/api/campaigns/state':
-              return json(await campaigns.get(locator, session, user?.id));
-            case '/api/campaigns/character':
-              return json(await campaigns.character(locator, session, b.participantId, user?.id));
-            case '/api/campaigns/character/save':
-              return json(
-                await campaigns.saveCharacter(locator, session, b.sheet, b.revision, user?.id),
-              );
-            case '/api/campaigns/event':
-              return json(await campaigns.event(locator, session, b.body, user?.id));
-            case '/api/campaigns/status':
-              return json(
-                await campaigns.status(locator, session, b.status as CampaignStatus, user?.id),
-              );
-            case '/api/campaigns/revoke':
-              return json(await campaigns.revoke(locator, session, user?.id));
-            case '/api/campaigns/rotate':
-              return json(await campaigns.rotate(locator, session, user?.id));
-            case '/api/campaigns/remove':
-              return json(
-                await campaigns.remove(locator, session, String(b.participantId), user?.id),
-              );
-            case '/api/campaigns/claim':
-              return json(await campaigns.claim(locator, session, requireOwner()));
-          }
-        }
-      }
       if (url.pathname.startsWith('/api/'))
         throw new ApiError(404, 'Rota de API inexistente ou método não permitido.');
       if (!['GET', 'HEAD'].includes(request.method))
@@ -292,8 +213,7 @@ export default {
         },
       );
     } catch (e) {
-      if (e instanceof ApiError || e instanceof CharacterError || e instanceof TabletopError)
-        return json({ error: e.message }, e.status);
+      if (e instanceof ApiError) return json({ error: e.message }, e.status);
       if (
         e instanceof Error &&
         !('code' in e) &&

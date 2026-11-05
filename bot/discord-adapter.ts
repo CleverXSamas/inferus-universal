@@ -1,6 +1,5 @@
 import { evaluateSheet, resolveActionExpression } from '../packages/sheet-engine/index.js';
-import { botCard, campaignCard, commandError, pageOf, safe } from './presentation.js';
-import { campaignStatusLabels } from '../packages/campaign-types/index.js';
+import { botCard, commandError, pageOf, safe } from './presentation.js';
 import type { SiteIntegration } from './site-integration.js';
 import { roll } from '../packages/dice-core/index.js';
 import {
@@ -13,33 +12,27 @@ import {
 } from '../packages/discord-ui/index.js';
 export type PrefixCommand =
   | { kind: 'help'; topic: string }
-  | { kind: 'login' | 'sheet' | 'roster' }
-  | { kind: 'skills' | 'campaigns' | 'actions' | 'diary'; page: number }
-  | { kind: 'campaign'; query?: string }
-  | { kind: 'session'; status: 'active' | 'paused' | 'closed' }
-  | { kind: 'note'; text: string }
+  | { kind: 'login' }
+  | { kind: 'sheet'; query?: string }
+  | { kind: 'skills' | 'actions' | 'sheets'; page: number }
   | { kind: 'pair'; code: string }
   | { kind: 'action'; name: string; target?: number }
   | { kind: 'roll'; expression: string; target?: number; reason: string };
 export function parsePrefixCommand(content: string): PrefixCommand | null {
   const match = content.match(
-    /^!(rolar|roll|r|ajuda|login|vincular|ficha|skills|campanhas|campanha|mesa|diario|diário|sessao|sessão|anotar|acoes|ações|acao|ação)(?=\s|$)\s*([\s\S]*)$/i,
+    /^!(rolar|roll|r|ajuda|login|vincular|fichas|ficha|skills|acoes|ações|acao|ação)(?=\s|$)\s*([\s\S]*)$/i,
   );
   if (!match) return null;
   if (content.length > 350) throw new Error('Use um comando de até 350 caracteres.');
   const verb = match[1].toLocaleLowerCase('pt-BR');
-  const simple: Record<string, 'login' | 'sheet' | 'roster'> = {
+  const simple: Record<string, 'login'> = {
     login: 'login',
-    ficha: 'sheet',
-    mesa: 'roster',
   };
-  const paged: Record<string, 'skills' | 'campaigns' | 'actions' | 'diary'> = {
+  const paged: Record<string, 'skills' | 'actions' | 'sheets'> = {
     skills: 'skills',
-    campanhas: 'campaigns',
+    fichas: 'sheets',
     acoes: 'actions',
     ações: 'actions',
-    diario: 'diary',
-    diário: 'diary',
   };
   if (paged[verb]) {
     const input = match[2].trim();
@@ -47,35 +40,13 @@ export function parsePrefixCommand(content: string): PrefixCommand | null {
       throw new Error(`Use !${verb} ou !${verb} 2 para mudar de página.`);
     return { kind: paged[verb], page: input ? Number(input) : 1 };
   }
-  if (verb === 'campanha') {
+  if (verb === 'ficha') {
     const arg = match[2].trim();
-    if (!arg) return { kind: 'campaign' };
+    if (!arg) return { kind: 'sheet' };
     const query = arg.match(/^usar\s+(.+)$/i)?.[1].trim();
-    if (!query || query.length > 100)
-      throw new Error(
-        'Use !campanha para consultar ou !campanha usar Nome da campanha para escolher.',
-      );
-    return { kind: 'campaign', query };
-  }
-  if (verb === 'sessao' || verb === 'sessão') {
-    const statuses = {
-      iniciar: 'active',
-      retomar: 'active',
-      pausar: 'paused',
-      encerrar: 'closed',
-    } as const;
-    const action = match[2].trim().toLocaleLowerCase('pt-BR');
-    if (!Object.hasOwn(statuses, action))
-      throw new Error(
-        'Use !sessao iniciar, pausar, retomar ou encerrar. Apenas o mestre pode alterar a sessão.',
-      );
-    return { kind: 'session', status: statuses[action as keyof typeof statuses] };
-  }
-  if (verb === 'anotar') {
-    const text = match[2].trim();
-    if (!text || text.length > 300)
-      throw new Error('Use !anotar seguido de uma mensagem de até 300 caracteres.');
-    return { kind: 'note', text };
+    if (!query || query.length > 120)
+      throw new Error('Use !ficha ou !ficha usar Nome completo ou ID.');
+    return { kind: 'sheet', query };
   }
   if (simple[verb]) {
     if (match[2].trim()) throw new Error(`Use !${verb} sem argumentos.`);
@@ -107,10 +78,8 @@ export function parsePrefixCommand(content: string): PrefixCommand | null {
         .toLocaleLowerCase('pt-BR')
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '') || 'inicio';
-    if (!['inicio', 'expressoes', 'privacidade', 'campanhas', 'personagem'].includes(topic))
-      throw new Error(
-        'Use !ajuda, !ajuda campanhas, !ajuda personagem, !ajuda expressoes ou !ajuda privacidade.',
-      );
+    if (!['inicio', 'expressoes', 'privacidade', 'personagem'].includes(topic))
+      throw new Error('Use !ajuda, !ajuda personagem, !ajuda expressoes ou !ajuda privacidade.');
     return { kind: 'help', topic };
   }
   const [options, ...caption] = match[2].split('|');
@@ -139,7 +108,7 @@ export function createPrefixHandler(origin?: string, now = Date.now, site?: Site
     if (
       message.isBot ||
       !message.inGuild ||
-      !/^!(rolar|roll|r|ajuda|login|vincular|ficha|skills|campanhas|campanha|mesa|diario|diário|sessao|sessão|anotar|acoes|ações|acao|ação)(?=\s|$)/i.test(
+      !/^!(rolar|roll|r|ajuda|login|vincular|fichas|ficha|skills|acoes|ações|acao|ação)(?=\s|$)/i.test(
         message.content,
       )
     )
@@ -170,7 +139,7 @@ export function createPrefixHandler(origin?: string, now = Date.now, site?: Site
         else if (command.kind === 'login')
           response = botCard(
             'Conecte sua conta ao Inferus',
-            '1. Abra a página Discord do site e entre na conta.\n2. Gere o código e envie `!vincular CÓDIGO`.\n3. Confirme seu nome e ID no site.\n4. Escolha uma ficha ou use `!campanha usar Nome da campanha`.',
+            '1. Abra a página Discord do site e entre na conta.\n2. Gere o código e envie `!vincular CÓDIGO`.\n3. Confirme seu nome e ID no site.\n4. Escolha sua ficha salva no site.',
             origin,
             {
               label: 'Vincular minha conta',
@@ -188,72 +157,32 @@ export function createPrefixHandler(origin?: string, now = Date.now, site?: Site
               origin,
               { label: 'Confirmar meu Discord' },
             );
-          } else if (command.kind === 'campaigns') {
-            const list = await site.campaigns(message.userId);
-            const page = pageOf(list, command.page);
+          } else if (command.kind === 'sheets') {
+            const list = await site.sheets(message.userId),
+              page = pageOf(list, command.page);
             response = botCard(
-              'Suas campanhas',
+              'Suas fichas',
               list.length
-                ? 'Escolha com `!campanha usar Nome da campanha` ou use o ID. A seleção é pessoal e vale também para sua ficha no bot.'
-                : 'Você ainda não participa de uma campanha. Crie uma mesa no site ou entre pelo convite do mestre.',
+                ? 'Escolha com `!ficha usar Nome completo` ou use o ID.'
+                : 'Salve sua primeira ficha na conta pelo site.',
               origin,
               {
-                path: '/campanhas',
-                footer:
-                  page.footer +
-                  (command.page * 5 < list.length ? ` · !campanhas ${command.page + 1}` : ''),
-                fields: page.items.map((c) => ({
-                  name: `${c.selected ? '◆ ' : ''}${safe(c.name, 100)}`,
-                  value: `${campaignStatusLabels[c.status]} · ${c.participants}/10 · ${c.role === 'dm' ? 'Mestre' : 'Jogador'}\n${c.character ? safe(c.character) : 'Sem personagem vinculado'}\nID: \`${c.id}\``,
+                path: '/ficha',
+                fields: page.items.map((s) => ({
+                  name: `${s.selected ? '◆ ' : ''}${safe(s.name, 100)}`,
+                  value: `ID: \`${s.id}\``,
                 })),
+                footer: page.footer,
               },
             );
-          } else if (command.kind === 'note') {
-            const result = await site.note(message.userId, command.text);
-            response = botCard('Registro salvo no diário', safe(command.text, 300), origin, {
-              path: '/campanhas',
-              footer: `${safe(result.name, 100)} · !diario para consultar`,
-            });
-          } else if (['campaign', 'session', 'roster', 'diary'].includes(command.kind)) {
-            const c =
-              command.kind === 'session'
-                ? await site.session(message.userId, command.status)
-                : await site.campaign(
-                    message.userId,
-                    command.kind === 'campaign' ? command.query : undefined,
-                  );
-            if (command.kind === 'roster') {
-              response = botCard(
-                `À mesa · ${safe(c.name, 100)}`,
-                `${campaignStatusLabels[c.status]} · ${c.participants.length}/10 participantes`,
-                origin,
-                {
-                  path: `/campanhas?mesa=${encodeURIComponent(c.id)}`,
-                  fields: c.participants.map((p) => ({
-                    name: `${safe(p.name, 60)}${p.self ? ' · você' : ''}`,
-                    value: `${p.role === 'dm' ? 'Mestre' : 'Jogador'} · ${p.character ? safe(p.character) : 'Sem personagem vinculado'}`,
-                  })),
-                },
-              );
-            } else if (command.kind === 'diary') {
-              const page = pageOf([...c.events].reverse(), command.page, 3);
-              response = botCard(
-                `Diário · ${safe(c.name, 100)}`,
-                'Registros mais recentes primeiro. Use `!anotar texto` para registrar na mesa.',
-                origin,
-                {
-                  path: `/campanhas?mesa=${encodeURIComponent(c.id)}`,
-                  footer:
-                    page.footer +
-                    (command.page * 3 < c.events.length ? ` · !diario ${command.page + 1}` : ''),
-                  fields: page.items.map((e) => ({
-                    name: safe(e.author, 60),
-                    value: `${safe(e.body, 480)}\n<t:${Math.floor(Date.parse(e.createdAt) / 1000)}:f>`,
-                  })),
-                },
-              );
-            } else
-              response = campaignCard(c, origin, command.kind === 'campaign' && !!command.query);
+          } else if (command.kind === 'sheet' && command.query) {
+            const selected = await site.selectSheet(message.userId, command.query);
+            response = botCard(
+              `Personagem selecionado · ${safe(selected.name, 100)}`,
+              '`!ficha` resumo · `!acoes` ações · `!skills` habilidades',
+              origin,
+              { path: '/ficha' },
+            );
           } else {
             const sheet = await site.character(message.userId);
             const values = evaluateSheet(sheet);
@@ -289,7 +218,7 @@ export function createPrefixHandler(origin?: string, now = Date.now, site?: Site
               response = botCard(
                 `Habilidades · ${safe(sheet.name, 100)}`,
                 skills.length
-                  ? 'Habilidades desbloqueadas do personagem ativo. Custos e efeitos são aplicados manualmente na ficha.'
+                  ? 'Habilidades desbloqueadas da ficha ativa. Custos e efeitos são aplicados manualmente na ficha.'
                   : 'Nenhuma habilidade desbloqueada ainda. Abra a árvore deste personagem no site.',
                 origin,
                 {
@@ -298,7 +227,7 @@ export function createPrefixHandler(origin?: string, now = Date.now, site?: Site
                     (command.page * 5 < skills.length ? ` · !skills ${command.page + 1}` : ''),
                   fields: page.items.map((s) => ({
                     name: safe(s.name, 100),
-                    value: 'Desbloqueada',
+                    value: s.description ? safe(s.description, 300) : 'Desbloqueada',
                   })),
                 },
               );
@@ -326,12 +255,14 @@ export function createPrefixHandler(origin?: string, now = Date.now, site?: Site
             } else {
               const fields = sheet.sections
                 .flatMap((s) => s.fields)
-                .filter((f) => ['number', 'resource', 'calculated'].includes(f.type));
+                .filter((f) => ['number', 'resource', 'calculated'].includes(f.type))
+                .sort((a, b) => Number(!!b.pinned) - Number(!!a.pinned));
               response = botCard(
                 safe(sheet.name, 100),
-                'Personagem ativo · `!acoes` para rolar · `!skills` para habilidades',
+                `${sheet.system ? safe(sheet.system, 100) + ' · ' : ''}Personagem ativo · \`!acoes\` para rolar · \`!skills\` para habilidades`,
                 origin,
                 {
+                  path: '/ficha',
                   fields: fields.slice(0, 12).map((f) => ({
                     name: safe(f.label, 100),
                     inline: true,

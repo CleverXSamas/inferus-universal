@@ -1000,6 +1000,38 @@ function TreeStudio() {
           )}
         </section>
         <section className="skill-map-panel" aria-label="Mapa de skills">
+          <div className="map-skill-jump">
+            <label>
+              Localizar skill no mapa
+              <select
+                aria-label="Localizar skill no mapa"
+                value={selected ?? ''}
+                onChange={(e) => {
+                  const id = e.target.value;
+                  setSelected(id);
+                  if (id)
+                    flow.fitView({
+                      nodes: [{ id }],
+                      padding: 1,
+                      maxZoom: 1.2,
+                      duration: window.matchMedia('(prefers-reduced-motion: reduce)').matches
+                        ? 0
+                        : 250,
+                    });
+                }}
+              >
+                <option value="">Escolha uma skill</option>
+                {[...doc.skills]
+                  .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'))
+                  .map((n) => (
+                    <option key={n.id} value={n.id}>
+                      {n.name} · {doc.branches.find((b) => b.id === n.branchId)?.name ?? 'Sem ramo'}
+                      {n.unlocked ? ' · desbloqueada' : ''}
+                    </option>
+                  ))}
+              </select>
+            </label>
+          </div>
           <div className="map-panel-heading">
             <div>
               <span className="live-dot" />

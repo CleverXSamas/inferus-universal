@@ -162,7 +162,7 @@ test('cliente do bot limita usuários em cache e mantém menções desativadas',
     await client.destroy();
   }
 });
-test('bot consulta identidade vinculada, skills, campanhas e ação da ficha sem usar usuário informado no comando', async () => {
+test('bot consulta identidade vinculada, skills, fichas e ação da ficha sem usar usuário informado no comando', async () => {
   const calls: string[] = [];
   const sheet = {
     id: 'hero',
@@ -189,28 +189,13 @@ test('bot consulta identidade vinculada, skills, campanhas e ação da ficha sem
       calls.push(id);
       return sheet;
     },
-    campaign: async () => {
-      throw new Error('unused');
-    },
-    session: async () => {
-      throw new Error('unused');
-    },
-    note: async () => {
-      throw new Error('unused');
-    },
-    campaigns: async (id) => {
+    sheets: async (id) => {
       calls.push(id);
-      return [
-        {
-          id: 'camp_abc',
-          name: 'Campanha @everyone',
-          status: 'active',
-          participants: 2,
-          role: 'dm',
-          character: sheet.name,
-          selected: true,
-        },
-      ];
+      return [{ id: 'hero', name: sheet.name, selected: true }];
+    },
+    selectSheet: async (id) => {
+      calls.push(id);
+      return { id: 'hero', name: sheet.name };
     },
   });
   const replies: any[] = [];
@@ -236,12 +221,12 @@ test('bot consulta identidade vinculada, skills, campanhas e ação da ficha sem
   assert.match(JSON.stringify(replies.at(-1)), /Heroína/);
   await send('!skills');
   assert(JSON.stringify(replies.at(-1)).includes(sheet.skillTree.skills[0].name));
-  await send('!campanhas');
+  await send('!fichas');
   assert(!JSON.stringify(replies.at(-1)).includes('@everyone'));
   await send('!acao Ataque alvo:1');
   assert.equal(replies.at(-1).flags, 32768);
   assert.match(JSON.stringify(replies.at(-1)), /Ataque/);
   assert.match(JSON.stringify(replies.at(-1)), /Alvo 1/);
   assert(calls.every((id) => id.startsWith('111111111111111111')));
-  assert.throws(() => parsePrefixCommand('!ficha outra-pessoa'), /sem argumentos/);
+  assert.throws(() => parsePrefixCommand('!ficha outra-pessoa'), /!ficha usar/);
 });

@@ -46,3 +46,11 @@ Todo preset deve ser duplicável, editável e abandonável. Nenhum preset pode b
 - [x] Simplificar cartões, juntar modificador e dados, animar rolagens e compartilhar som na ficha.
 - [ ] Habilitar Message Content Intent e configurar um serviço Gateway contínuo com token válido no cofre; confirmar uso real de !rolar no canal.
 - [ ] Remover rolar/ajuda do catálogo real do Discord com o formulário autenticado ou bot:remove-slash; incluir servidores com registro específico.
+
+## Escopo atual — V12
+
+- [x] Retirar Campanha/VTT e Dado Aberto da navegação, módulos e APIs.
+- [x] Retirar comandos e consultas de campanha do bot.
+- [x] Listar e selecionar fichas próprias pelo bot com confirmação de vínculo.
+- [x] Buscar/importar fichas e localizar skills no mapa.
+- [x] Rever documentação e substituir testes dos modos removidos por testes dos fluxos atuais.
