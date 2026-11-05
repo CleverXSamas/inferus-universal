@@ -1,0 +1,213 @@
+.simple-roll-result {
+  position: relative;
+  z-index: 1;
+}
+.roll-motion-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transform-origin: center;
+}
+.simple-roll-result .result-caption > .roll-motion-mark {
+  width: 22px;
+  height: 22px;
+  color: #ba9acf;
+}
+.simple-result-surface {
+  padding: 23px;
+  position: relative;
+  overflow: hidden;
+}
+.sheet-roll-dock .simple-result-surface {
+  padding: 23px 22px;
+  border-radius: 0;
+  border-left: 3px solid #b79be7;
+}
+.sheet-roll-dock .simple-roll-result .result-caption {
+  margin-bottom: 16px;
+}
+.sheet-roll-dock .simple-roll-result .result-caption .eyebrow {
+  font-size: 8px;
+}
+.sheet-roll-dock .simple-roll-result .big-number {
+  font-size: 68px;
+  line-height: 1.25;
+}
+.sheet-roll-dock .simple-roll-result .result-head {
+  margin-bottom: 8px;
+}
+.sheet-roll-dock .simple-roll-result .status {
+  font-size: 8px;
+  padding: 5px 8px;
+}
+.sheet-roll-dock .simple-roll-result .formula {
+  font-size: 11px;
+  padding-bottom: 18px;
+  margin-bottom: 18px;
+}
+.sheet-roll-dock .simple-roll-result .audit-label {
+  font-size: 10px;
+}
+.sheet-roll-dock .simple-roll-result .die {
+  min-width: 31px;
+  height: 32px;
+  font-size: 11px;
+}
+.sheet-roll-dock .simple-roll-result .roll-id {
+  font-size: 8px;
+  line-height: 1.8;
+}
+.sheet-dice-options {
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+.sheet-dice-options .sheet-dice-presets {
+  margin-top: 0;
+}
+.sheet-dice-options .sound-toggle {
+  font-size: 9px;
+  padding: 6px 8px;
+  min-height: 30px;
+}
+.is-roll-animating .die,
+.is-roll-animating .roll-card-dice > span {
+  animation: dice-tumble 0.55s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+  animation-delay: var(--die-delay, 0ms);
+  transform-origin: 50% 55%;
+}
+.is-roll-animating .big-number,
+.is-roll-animating .roll-card-total {
+  animation: roll-total-reveal 0.5s ease-out both;
+}
+.is-roll-animating .roll-motion-mark {
+  animation: roll-mark-spin 0.65s ease-out both;
+}
+@keyframes dice-tumble {
+  0% {
+    transform: translateY(-8px) rotate(-45deg) scale(0.8);
+    opacity: 0.45;
+  }
+  30% {
+    transform: translateY(3px) rotate(20deg) scale(1.08);
+    opacity: 1;
+  }
+  60% {
+    transform: translateY(-2px) rotate(-10deg);
+  }
+  100% {
+    transform: translateY(0) rotate(0) scale(1);
+    opacity: 1;
+  }
+}
+@keyframes roll-total-reveal {
+  0% {
+    transform: translateY(5px) scale(0.96);
+    text-shadow: 0 0 14px #c7a6f088;
+  }
+  60% {
+    transform: translateY(-1px) scale(1.02);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+    text-shadow: none;
+  }
+}
+@keyframes roll-mark-spin {
+  0% {
+    transform: rotate(-90deg) scale(0.8);
+  }
+  55% {
+    transform: rotate(20deg) scale(1.15);
+  }
+  100% {
+    transform: rotate(0) scale(1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .is-roll-animating .die,
+  .is-roll-animating .roll-card-dice > span,
+  .is-roll-animating .big-number,
+  .is-roll-animating .roll-card-total,
+  .is-roll-animating .roll-motion-mark {
+    animation: none;
+    transform: none;
+  }
+}
+@media (max-width: 680px) {
+  .sheet-roll-dock .simple-result-surface {
+    padding: 22px 20px;
+  }
+  .sheet-roll-dock .simple-roll-result .big-number {
+    font-size: 64px;
+  }
+}
+.roll-inline-modifier {
+  display: inline-flex;
+  align-items: center;
+  align-self: center;
+  min-height: 32px;
+  padding: 0 9px;
+  font-family: 'Space Mono', monospace;
+  font-size: 13px;
+  font-weight: 600;
+  color: #e0c9f3;
+  border-left: 1px solid #725084;
+  margin-left: 3px;
+}
+.roll-card-description,
+.roll-card-group-label {
+  display: block;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 11px;
+  line-height: 1.7;
+  color: #bda5ce;
+  overflow-wrap: anywhere;
+}
+.roll-card-group-label {
+  margin-bottom: 12px;
+}
+.roll-card-dice {
+  align-items: center;
+}
+
+.simple-roll-result .formula {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  line-height: 1.7;
+}
+.simple-roll-result .big-number small {
+  display: inline-block;
+  margin-left: 8px;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 12px;
+  letter-spacing: 0;
+  color: #bda5ce;
+}
+
+.roll-card {
+  position: relative;
+}
+.roll-card-flourish {
+  position: absolute;
+  width: 68px;
+  height: 68px;
+  right: 20px;
+  top: 22px;
+  pointer-events: none;
+}
+.roll-card:has(.roll-card-flourish) .roll-card-title,
+.roll-card:has(.roll-card-flourish) .roll-card-total {
+  padding-right: 72px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .roll-card-flourish {
+    display: none;
+  }
+  .roll-card:has(.roll-card-flourish) .roll-card-title,
+  .roll-card:has(.roll-card-flourish) .roll-card-total {
+    padding-right: 0;
+  }
+}

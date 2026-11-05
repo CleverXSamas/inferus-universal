@@ -1,0 +1,55 @@
+name: Validation
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: inferus-ci-only
+          MYSQL_DATABASE: inferus_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -pinferus-ci-only"
+          --health-interval=5s --health-timeout=5s --health-retries=30
+    env:
+      TEST_DATABASE_URL: mysql://root:inferus-ci-only@127.0.0.1:3306/inferus_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+      - run: npm run check:edge
+      - run: npm test
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:browser
+      - run: npm run test:browser:edge
+  statistics:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run test:statistics
+
+  container:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t inferus-ci .
+      - run: docker run --rm --network none --mount "type=bind,src=$PWD/test/container-smoke.mjs,dst=/tmp/container-smoke.mjs,readonly" --entrypoint node inferus-ci /tmp/container-smoke.mjs

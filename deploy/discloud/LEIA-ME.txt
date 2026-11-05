@@ -1,0 +1,30 @@
+INFERUS BOT — DISCLOUD
+
+1. Extraia o ZIP em uma pasta privada e edite .env, preenchendo DISCORD_TOKEN.
+   O Application ID e o site HTTPS já estão configurados. Não envie tokens no chat.
+2. Compacte os arquivos da pasta (incluindo .env), sem uma pasta externa.
+3. Discloud > Aplicações > Upload > ZIP. Confira os logs de conexão.
+   Não precisa compilar, instalar TypeScript, abrir porta ou configurar banco.
+   Para atualizar um bot existente, preserve suas variáveis privadas da hospedagem.
+4. No Discord, use !login. Entre no site atual, gere o código de vínculo,
+   envie !vincular CODIGO ao bot e confirme a identidade no site.
+5. Use !fichas para listar suas fichas salvas e !ficha usar Nome completo
+   ou ID para escolher o personagem ativo. Você também pode escolhê-lo no site.
+6. Comandos: !rolar 1d20+5, !ficha, !skills, !acoes, !acao Ataque alvo:15.
+   Listas: !fichas 2, !skills 2 e !acoes 2.
+   Ajuda: !ajuda personagem, !ajuda expressoes e !ajuda privacidade.
+   Comandos, resumos e rolagens aparecem no canal.
+
+Remoção de slash legado: npm run remove-slash. DISCORD_GUILD_ID é opcional
+para remover também os registros específicos nesse servidor. Não é executada
+automaticamente. No site, o formulário autenticado remove os registros globais.
+
+Requer Node >=22.18. O pacote usa VERSION=latest e RAM=100 na Discloud.
+O plano gratuito possui limites e pode suspender aplicações inativas.
+Monitore os logs e a RAM. Nenhum plano pago foi contratado.
+As licenças de terceiros estão preservadas no final de inferus.cjs.
+Este ZIP não contém credenciais válidas nem publica nada sozinho.
+
+V13: !d e !dice são aliases de !rolar; d20, d% e 4d6d1 são aceitos.
+Use !r 6#4d6d1 | Atributos para repetições (máximo 10 e 100 dados iniciais).
+!help e !ajuda dados orientam; !ping verifica a resposta do processo no canal.

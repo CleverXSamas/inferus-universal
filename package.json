@@ -1,6 +1,6 @@
 {
   "name": "inferus-universal",
-  "version": "1.3.0",
+  "version": "1.5.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -8,11 +8,26 @@
     "build": "tsc -p tsconfig.server.json && vite build",
     "start": "node dist-server/server/index.js",
     "check": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.server.json",
-    "test": "node --test --import tsx test/**/*.test.ts"
+    "test": "tsc -p tsconfig.test.json && node --test --experimental-test-isolation=none work/test-build/test/*.test.js",
+    "test:statistics": "node --import tsx test/statistical/dice.ts",
+    "bot": "tsx bot/index.ts",
+    "start:bot": "node dist-server/bot/index.js",
+    "test:browser": "playwright test",
+    "format": "prettier --write \"{server,packages,src,bot,test}/**/*.{ts,tsx}\" playwright.config.ts",
+    "bot:check": "tsx bot/index.ts --check",
+    "build:sites": "node scripts/build-sites.mjs",
+    "check:edge": "tsc -p tsconfig.edge.json",
+    "test:browser:edge": "playwright test -c playwright.edge.config.ts",
+    "package:sites": "npm run build:sites && node scripts/package-sites.mjs",
+    "bot:remove-slash": "tsx bot/index.ts --remove-slash",
+    "package:bot": "node scripts/package-bot.mjs",
+    "test:full": "node scripts/test-with-mysql.mjs",
+    "pretest": "node -e \"require('node:fs').rmSync('work/test-build',{recursive:true,force:true})\""
   },
   "dependencies": {
     "@vitejs/plugin-react": "latest",
     "@xyflow/react": "latest",
+    "discord.js": "^14.28.0",
     "mysql2": "^3.24.6",
     "react": "latest",
     "react-dom": "latest",
@@ -21,8 +36,14 @@
     "vite": "latest"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.1",
     "@types/node": "latest",
     "@types/react": "latest",
-    "@types/react-dom": "latest"
+    "@types/react-dom": "latest",
+    "prettier": "^3.9.10",
+    "esbuild": "0.28.2"
+  },
+  "engines": {
+    "node": ">=22.18.0"
   }
 }
