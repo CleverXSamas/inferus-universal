@@ -1,9 +1,10 @@
+import { parseRollInput } from '../packages/roll-input';
 import { DiscordCommandGuide } from './DiscordCommandGuide';
 import { DiscordAccountLink } from './DiscordAccountLink';
 import { requestJSON } from './http';
 import { useEffect, useRef, useState } from 'react';
 import { roll, type RollRecord } from '../packages/dice-core';
-import { diceExamples, rollOptions } from '../packages/discord-ui';
+import { diceExamples, rollCardModel } from '../packages/discord-ui';
 import { useAccount } from './AuthPanel';
 import { RollCard } from './RollCard';
 import { Icon } from './editor-shared';
@@ -26,6 +27,7 @@ export function DiscordView() {
     [target, setTarget] = useState(''),
     [reason, setReason] = useState('Teste de percepção'),
     [result, setResult] = useState<RollRecord | null>(null),
+    [batch, setBatch] = useState<RollRecord[]>([]),
     [previewError, setPreviewError] = useState(''),
     [copied, setCopied] = useState(''),
     [copyError, setCopyError] = useState('');
@@ -59,24 +61,26 @@ export function DiscordView() {
       );
     }
   };
+  const draftRoll = () =>
+    parseRollInput(
+      `${expression}${target !== '' ? ` alvo:${target}` : ''}${reason.trim() ? ` | ${reason}` : ''}`,
+    );
   const command = () => {
-    const input = rollOptions({
-      expressao: expression,
-      alvo: target === '' ? undefined : Number(target),
-      motivo: reason,
-    });
-    return `!rolar ${input.expression}${target !== '' ? ` alvo:${input.target}` : ''}${input.reason ? ` | ${input.reason}` : ''}`;
+    const input = draftRoll();
+    return `!rolar ${input.times > 1 ? `${input.times}#` : ''}${input.expression}${input.target !== undefined ? ` alvo:${input.target}` : ''}${input.reason ? ` | ${input.reason}` : ''}`;
   };
   const preview = () => {
     try {
-      const input = rollOptions({
-        expressao: expression,
-        alvo: target === '' ? undefined : Number(target),
-        motivo: reason,
-      });
-      setResult(roll(input.expression, { target: input.target, user: 'preview', channel: 'web' }));
+      const input = draftRoll();
+      const results = Array.from({ length: input.times }, () =>
+        roll(input.expression, { target: input.target, user: 'preview', channel: 'web' }),
+      );
+      setResult(results[0]);
+      setBatch(results.length > 1 ? results : []);
       setPreviewError('');
     } catch (e) {
+      setResult(null);
+      setBatch([]);
       setPreviewError((e as Error).message);
     }
   };
@@ -163,6 +167,7 @@ export function DiscordView() {
                 onChange={(e) => {
                   setExpression(e.target.value);
                   setResult(null);
+                  setBatch([]);
                 }}
                 maxLength={160}
                 autoComplete="off"
@@ -178,6 +183,7 @@ export function DiscordView() {
                   onClick={() => {
                     setExpression(p.expression);
                     setResult(null);
+                    setBatch([]);
                   }}
                 >
                   {p.name}
@@ -205,12 +211,16 @@ export function DiscordView() {
                   onChange={(e) => {
                     setTarget(e.target.value);
                     setResult(null);
+                    setBatch([]);
                   }}
                   placeholder="Sem alvo"
                 />
               </label>
             </div>
-            <p className="help-text">Comando e resultado ficam visíveis para todos no canal.</p>
+            <p className="help-text">
+              Aceita d20, d%, 4d6d1 e repetições como 6#4d6d1. Até 10 repetições e 100 dados
+              iniciais por lote. Comando e resultado ficam visíveis no canal.
+            </p>
             <div className="bot-builder-actions">
               <button type="submit">
                 <Icon name="skill" size={16} />
@@ -255,7 +265,48 @@ export function DiscordView() {
                   Inferus <span>APP</span>
                   <small>visível para o canal</small>
                 </div>
-                <RollCard result={result} reason={reason} expression={expression} />
+                {batch.length > 1 ? (
+                  <section className="roll-batch-preview" aria-label="Prévia de rolagens repetidas">
+                    <h3>{reason || 'Rolagens repetidas'}</h3>
+                    <p>
+                      {batch.length} rolagens independentes · {rollCardModel(batch[0]).description}
+                    </p>
+                    {batch.map((r, i) => (
+                      <div className="roll-batch-entry" key={r.roll_id}>
+                        <b>
+                          {i + 1} · {r.total}
+                          {r.mode === 'success' ? ' sucessos' : ''}
+                          {r.target !== undefined
+                            ? ` · Alvo ${r.target} · ${r.passed ? 'Passou' : 'Não atingiu'}`
+                            : ''}
+                        </b>
+                        <div>
+                          {r.groups
+                            .flatMap((g) =>
+                              g.dice.map((d) => ({ ...d, negative: g.raw.startsWith('-') })),
+                            )
+                            .slice(0, 10)
+                            .map((d, j) => (
+                              <span key={j} className={d.kept ? 'batch-kept' : 'batch-dropped'}>
+                                {d.negative ? '−' : ''}
+                                {d.total}
+                              </span>
+                            ))}
+                          {r.groups.reduce((n, g) => n + g.dice.length, 0) > 10 && <span>…</span>}
+                          {r.bonus !== 0 && (
+                            <span>
+                              Bônus {r.bonus > 0 ? '+' : ''}
+                              {r.bonus}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                    <small>INFERUS · Cada linha é uma jogada · Resposta pública</small>
+                  </section>
+                ) : (
+                  <RollCard result={result} reason={reason} expression={expression} />
+                )}
               </div>
             </div>
             <div className="preview-caption">
@@ -457,6 +508,7 @@ export function DiscordView() {
                   onClick={() => {
                     setExpression(p.expression);
                     setResult(null);
+                    setBatch([]);
                     builder.current?.scrollIntoView({
                       behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches
                         ? 'instant'

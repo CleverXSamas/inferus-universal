@@ -43,7 +43,7 @@ async function main() {
     createSiteIntegration(env('PUBLIC_ORIGIN'), token),
   );
   client.once('clientReady', () =>
-    console.log('Inferus conectado. Comandos públicos: !rolar, !r e !ajuda.'),
+    console.log('Inferus conectado. Comandos públicos: !rolar, !r, !d, !dice, !ficha e !ajuda.'),
   );
   client.on('messageCreate', (message) => {
     if (!message.inGuild() || message.author.bot || message.webhookId || message.system) return;

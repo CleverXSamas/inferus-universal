@@ -1,3 +1,4 @@
+import { parseRollInput } from '../packages/roll-input/index.js';
 import { evaluateSheet, resolveActionExpression } from '../packages/sheet-engine/index.js';
 import { botCard, commandError, pageOf, safe } from './presentation.js';
 import type { SiteIntegration } from './site-integration.js';
@@ -5,28 +6,29 @@ import { roll } from '../packages/dice-core/index.js';
 import {
   formatHelp,
   formatRoll,
+  formatRollBatch,
   formatRollError,
   presentMessage,
-  rollOptions,
   type DiscordMessage,
 } from '../packages/discord-ui/index.js';
 export type PrefixCommand =
   | { kind: 'help'; topic: string }
-  | { kind: 'login' }
+  | { kind: 'login' | 'ping' }
   | { kind: 'sheet'; query?: string }
   | { kind: 'skills' | 'actions' | 'sheets'; page: number }
   | { kind: 'pair'; code: string }
   | { kind: 'action'; name: string; target?: number }
-  | { kind: 'roll'; expression: string; target?: number; reason: string };
+  | { kind: 'roll'; expression: string; target?: number; reason: string; times?: number };
 export function parsePrefixCommand(content: string): PrefixCommand | null {
   const match = content.match(
-    /^!(rolar|roll|r|ajuda|login|vincular|fichas|ficha|skills|acoes|ações|acao|ação)(?=\s|$)\s*([\s\S]*)$/i,
+    /^!(rolar|roll|r|d|dice|ajuda|help|ping|login|vincular|fichas|ficha|skills|acoes|ações|acao|ação)(?=\s|$)\s*([\s\S]*)$/i,
   );
   if (!match) return null;
   if (content.length > 350) throw new Error('Use um comando de até 350 caracteres.');
   const verb = match[1].toLocaleLowerCase('pt-BR');
-  const simple: Record<string, 'login'> = {
+  const simple: Record<string, 'login' | 'ping'> = {
     login: 'login',
+    ping: 'ping',
   };
   const paged: Record<string, 'skills' | 'actions' | 'sheets'> = {
     skills: 'skills',
@@ -71,25 +73,32 @@ export function parsePrefixCommand(content: string): PrefixCommand | null {
       throw new Error('Use !acao Nome da ação alvo:15 (alvo opcional).');
     return { kind: 'action', name, target: value };
   }
-  if (match[1].toLowerCase() === 'ajuda') {
-    const topic =
+  if (verb === 'ajuda' || verb === 'help') {
+    const requestedTopic =
       match[2]
         .trim()
         .toLocaleLowerCase('pt-BR')
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '') || 'inicio';
+    const aliases: Record<string, string> = {
+      dados: 'expressoes',
+      dice: 'expressoes',
+      character: 'personagem',
+      conta: 'privacidade',
+    };
+    const topic = aliases[requestedTopic] ?? requestedTopic;
     if (!['inicio', 'expressoes', 'privacidade', 'personagem'].includes(topic))
       throw new Error('Use !ajuda, !ajuda personagem, !ajuda expressoes ou !ajuda privacidade.');
     return { kind: 'help', topic };
   }
-  const [options, ...caption] = match[2].split('|');
-  const target = options.match(/\s+alvo:(-?\d+)\s*$/i);
-  const input = rollOptions({
-    expressao: target ? options.slice(0, target.index).trim() : options.trim(),
-    alvo: target ? Number(target[1]) : undefined,
-    motivo: caption.join('|').trim(),
-  });
-  return { kind: 'roll', expression: input.expression, target: input.target, reason: input.reason };
+  const input = parseRollInput(match[2]);
+  return {
+    kind: 'roll',
+    expression: input.expression,
+    target: input.target,
+    reason: input.reason,
+    ...(input.times > 1 ? { times: input.times } : {}),
+  };
 }
 export type PrefixMessage = {
   content: string;
@@ -108,7 +117,7 @@ export function createPrefixHandler(origin?: string, now = Date.now, site?: Site
     if (
       message.isBot ||
       !message.inGuild ||
-      !/^!(rolar|roll|r|ajuda|login|vincular|fichas|ficha|skills|acoes|ações|acao|ação)(?=\s|$)/i.test(
+      !/^!(rolar|roll|r|d|dice|ajuda|help|ping|login|vincular|fichas|ficha|skills|acoes|ações|acao|ação)(?=\s|$)/i.test(
         message.content,
       )
     )
@@ -126,17 +135,26 @@ export function createPrefixHandler(origin?: string, now = Date.now, site?: Site
       try {
         const command = parsePrefixCommand(message.content)!;
         if (command.kind === 'help') response = formatHelp(command.topic, origin);
-        else if (command.kind === 'roll')
-          response = formatRoll(
+        else if (command.kind === 'ping')
+          response = botCard(
+            'Inferus está respondendo',
+            'Esta resposta confirma o processo do bot neste canal. Para testar o vínculo e a ficha, use `!ficha`.',
+            origin,
+            { footer: 'Gateway ativo · A resposta não verifica o banco nem a API do site' },
+          );
+        else if (command.kind === 'roll') {
+          const results = Array.from({ length: command.times ?? 1 }, () =>
             roll(command.expression, {
               target: command.target,
               user: message.userId,
               channel: 'discord',
             }),
-            command.reason,
-            origin,
           );
-        else if (command.kind === 'login')
+          response =
+            results.length === 1
+              ? formatRoll(results[0], command.reason, origin)
+              : formatRollBatch(results, command.reason, origin);
+        } else if (command.kind === 'login')
           response = botCard(
             'Conecte sua conta ao Inferus',
             '1. Abra a página Discord do site e entre na conta.\n2. Gere o código e envie `!vincular CÓDIGO`.\n3. Confirme seu nome e ID no site.\n4. Escolha sua ficha salva no site.',
@@ -279,7 +297,7 @@ export function createPrefixHandler(origin?: string, now = Date.now, site?: Site
           }
         }
       } catch (error) {
-        response = /^!(r|roll|rolar)(?=\s|$)/i.test(message.content)
+        response = /^!(r|roll|rolar|d|dice)(?=\s|$)/i.test(message.content)
           ? formatRollError(error)
           : commandError(error, message.content, origin);
       }

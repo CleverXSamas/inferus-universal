@@ -71,3 +71,9 @@ O cache do bot não retém mensagens de canais e limita usuários/membros, prese
 ## Fichas pelo bot
 
 `!fichas [página]` lista apenas suas fichas salvas. `!ficha usar Nome completo` ou `!ficha usar ID` escolhe a ficha ativa. Nomes iguais exigem o ID; não há seleção automática. `!ficha`, `!skills [página]`, `!acoes [página]` e `!acao Nome alvo:15` usam essa ficha e sua árvore. É necessário vincular e confirmar o Discord no site antes de acessar dados. Campos de texto não são enviados ao bot. Os comandos de campanha foram retirados.
+
+## Atalhos, títulos e repetições
+
+`!d d20+5 Percepção` e `!dice d%` são atalhos de !rolar. Use `!r 6#4d6d1 | Atributos` para seis jogadas independentes. O lote aceita até dez repetições e cem dados iniciais no total. `4d6k3` mantém os três maiores; `4d6d1` descarta o menor. `!help` é alias de !ajuda; `!ajuda dados` mostra exemplos. `!ping` confirma que o processo respondeu no canal; `!ficha` confere também o acesso à sua ficha.
+
+A prévia na página Discord aceita repetições e permite copiar o comando canônico. A ficha aceita d20, d% e os aliases de seleção; repetição X# continua limitada ao comando e à sua prévia. Inspirações e diferenças estão em [BOT-REFERENCES.md](BOT-REFERENCES.md).

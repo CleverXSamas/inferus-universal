@@ -1417,3 +1417,40 @@
     width: 100%;
   }
 }
+
+.roll-batch-preview {
+  padding: 22px;
+  border: 1px solid #46344f;
+  border-left: 4px solid #b79be7;
+  border-radius: 10px;
+  background: #231d2d;
+}
+.roll-batch-preview h3 {
+  margin: 0 0 8px;
+  overflow-wrap: anywhere;
+}
+.roll-batch-preview > p,
+.roll-batch-preview > small {
+  font-size: 0.8rem;
+  color: #bdafca;
+  line-height: 1.6;
+}
+.roll-batch-entry {
+  padding: 14px 0;
+  border-top: 1px solid #4a3a54;
+}
+.roll-batch-entry > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 8px;
+  font-size: 0.85rem;
+}
+.batch-kept {
+  font-weight: 700;
+  color: #f0e2ff;
+}
+.batch-dropped {
+  text-decoration: line-through;
+  opacity: 0.55;
+}

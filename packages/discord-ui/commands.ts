@@ -15,9 +15,36 @@ export const commandCatalog = [
   },
   {
     group: 'Dados',
+    command: '!d d20+5 Percepção',
+    title: 'Rolar com atalho',
+    description:
+      '!d, !dice, !r e !rolar fazem a mesma jogada. O título pode vir depois da expressão.',
+  },
+  {
+    group: 'Dados',
+    command: '!r 6#4d6d1 | Atributos',
+    title: 'Repetir uma jogada',
+    description:
+      'Cada linha é um resultado independente. Até 10 repetições e 100 dados iniciais por lote.',
+  },
+  {
+    group: 'Dados',
+    command: '!d d%',
+    title: 'Rolar percentual',
+    description: 'd% equivale a 1d100. d20 equivale a 1d20; 4d6k3 mantém os três maiores.',
+  },
+  {
+    group: 'Conta',
+    command: '!ping',
+    title: 'Verificar se o bot responde',
+    description:
+      'Confirma o processo no canal. Para conferir a ficha e o vínculo com o site, use !ficha.',
+  },
+  {
+    group: 'Dados',
     command: '!rolar 1d20+5 alvo:15 | Percepção',
     title: 'Rolar com contexto',
-    description: 'Alvo e título são opcionais. Também aceita !r.',
+    description: 'Alvo e título são opcionais. Também aceita !r, !d e !dice.',
   },
   {
     group: 'Personagem',

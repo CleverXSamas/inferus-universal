@@ -78,6 +78,8 @@ export type DiscordActionRow = {
   components: { type: 2; style: 5; label: string; url: string }[];
 };
 export type DiscordMessage = {
+  /** Local presentation hint; stripped before sending a rich Discord payload. */
+  fallbackContent?: string;
   content?: string;
   flags?: 32768;
   embeds?: DiscordEmbed[];
@@ -164,10 +166,10 @@ export function rollCardModel(result: RollRecord, reason = ''): RollCardModel {
 export function rollOptions(options: Record<string, unknown>) {
   if (
     typeof options.expressao !== 'string' ||
-    options.expressao.length < 3 ||
+    options.expressao.length < 2 ||
     options.expressao.length > 160
   )
-    throw new Error('Informe uma expressão de 3 a 160 caracteres, como 1d20+5.');
+    throw new Error('Informe uma expressão de 2 a 160 caracteres, como 1d20+5.');
   parseExpression(options.expressao);
   if (
     options.alvo !== undefined &&
@@ -271,6 +273,55 @@ export function formatRoll(result: RollRecord, reason = '', origin?: string): Di
   } catch {}
   return { flags: 32768, components: [{ type: 17, id: 1, accent_color: 0xb79be7, components }] };
 }
+/** One response for a bounded batch; each total remains independent. */
+export function formatRollBatch(
+  results: RollRecord[],
+  reason = '',
+  origin?: string,
+): DiscordMessage {
+  if (results.length < 1 || results.length > 10) throw new Error('Lote inválido.');
+  const first = rollCardModel(results[0], reason);
+  return {
+    fallbackContent: [
+      `**${escape(reason || 'Rolagens repetidas')}**`,
+      `${results.length} rolagens independentes · ${first.description}`,
+      ...results.map(
+        (r, i) =>
+          `${i + 1} · **${r.total}**${r.mode === 'success' ? ' sucessos' : ''}${r.target !== undefined ? ` · Alvo ${r.target} · ${r.passed ? 'Passou' : 'Não atingiu'}` : ''}`,
+      ),
+      'INFERUS · Todos os totais acima; detalhes dos dados exigem embeds.',
+    ].join('\n'),
+    embeds: [
+      {
+        title: escape(reason || 'Rolagens repetidas'),
+        description: `${results.length} rolagens independentes · ${first.description}`,
+        color: 0xb79be7,
+        fields: results.map((r, i) => {
+          const dice = r.groups.flatMap((g) =>
+            g.dice.map((d) => ({ ...d, negative: g.raw.startsWith('-') })),
+          );
+          const shown = dice
+            .slice(0, 10)
+            .map((d) =>
+              d.kept
+                ? `**${d.negative ? '−' : ''}${d.total}**`
+                : `~~${d.negative ? '−' : ''}${d.total}~~`,
+            )
+            .join(' · ');
+          return {
+            name: `${i + 1} · ${r.total}${r.mode === 'success' ? ' sucessos' : ''}${r.target !== undefined ? ` · Alvo ${r.target} · ${r.passed ? 'Passou' : 'Não atingiu'}` : ''}`,
+            value:
+              shown +
+              (dice.length > 10 ? ' · …' : '') +
+              (r.bonus ? ` · Bônus ${r.bonus > 0 ? '+' : ''}${r.bonus}` : ''),
+          };
+        }),
+        footer: { text: 'INFERUS · Cada linha é uma jogada · Resposta pública' },
+      },
+    ],
+    ...siteButton(origin),
+  };
+}
 export function formatHelp(topic: unknown = 'inicio', origin?: string): DiscordMessage {
   const selected = helpTopics.some((t) => t.value === topic) ? topic : 'inicio';
   const fields =
@@ -279,7 +330,20 @@ export function formatHelp(topic: unknown = 'inicio', origin?: string): DiscordM
           .filter((c) => c.group === 'Personagem')
           .map((c) => ({ name: c.title, value: `\`${c.command}\`\n${c.description}` }))
       : selected === 'expressoes'
-        ? diceExamples.map((p) => ({
+        ? [
+            ...diceExamples,
+            {
+              name: 'Abreviações',
+              expression: 'd20 · d% · 4d6k3 · 4d6d1',
+              description: 'Um dado, percentual, manter maiores e descartar menor.',
+            },
+            {
+              name: 'Repetições no bot',
+              expression: '!r 6#4d6d1 | Atributos',
+              description:
+                'Seis resultados independentes; no máximo 10 repetições e 100 dados iniciais por lote.',
+            },
+          ].map((p) => ({
             name: p.name,
             value: `\`${p.expression}\` — ${p.description}`,
           }))
@@ -298,7 +362,7 @@ export function formatHelp(topic: unknown = 'inicio', origin?: string): DiscordM
               {
                 name: 'Limites de dados',
                 value:
-                  'De 1 a 40 dados por grupo, de 2 a 1000 lados e expressão de até 160 caracteres. Bônus total entre -50 e +50.',
+                  'De 1 a 40 dados por grupo, de 2 a 1000 lados e expressão de até 160 caracteres; 1–10 repetições e até 100 dados iniciais por lote. Bônus total entre -50 e +50.',
               },
               {
                 name: 'Fichas e árvores',
@@ -310,12 +374,12 @@ export function formatHelp(topic: unknown = 'inicio', origin?: string): DiscordM
               {
                 name: '1 · Faça sua primeira jogada',
                 value:
-                  '`!rolar 1d20+5`\nTambém aceita !r. Envie como uma mensagem normal no canal.',
+                  '`!rolar 1d20+5`\nTambém aceita !r, !d e !dice. Envie como uma mensagem normal no canal.',
               },
               {
                 name: '2 · Dê contexto',
                 value:
-                  'Exemplo: `!rolar 1d20+5 alvo:15 | Percepção`. O texto depois de | nomeia a jogada.',
+                  'Exemplo: `!rolar 1d20+5 alvo:15 | Percepção`. Também aceita `!d d20+5 Percepção` sem separador.',
               },
               {
                 name: '3 · Sua conta e seu personagem',
@@ -377,6 +441,10 @@ export function embedsPermitted(permissions: unknown) {
   return (BigInt(permissions) & (1n << 14n)) !== 0n;
 }
 export function presentMessage(message: DiscordMessage, rich = true): DiscordMessage {
+  if (message.fallbackContent) {
+    const { fallbackContent, ...payload } = message;
+    return rich ? payload : { content: fallbackContent, components: message.components };
+  }
   if (rich) return message;
   if (message.flags === 32768) {
     const blocks = (message.components ?? [])

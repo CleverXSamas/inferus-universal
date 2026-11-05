@@ -68,14 +68,22 @@ function secureFace(sides: number) {
 
 export function parseExpression(input: string): RollSpec {
   const text = input.replace(/\s+/g, '').replace(/−/g, '-');
-  if (text.length < 3 || text.length > 160) fail('A expressão deve ter entre 3 e 160 caracteres.');
+  if (text.length < 2 || text.length > 160) fail('A expressão deve ter entre 2 e 160 caracteres.');
   if (!/^[+-]?[^+-]+(?:[+-][^+-]+)*$/.test(text)) fail('Operador sem termo na expressão.');
   const parts = text.match(/[+-]?[^+-]+/g) ?? [];
   let bonus = 0;
   const groups: Group[] = [];
   let mode: 'sum' | 'success' = 'sum';
   let successTarget: number | undefined;
-  for (const token of parts) {
+  for (let token of parts) {
+    const alias = token.match(/^([+-]?)(\d*)d(\d+|%)(!|(?:kh|kl|dh|dl|k|d)\d+|>=\d+)?$/i);
+    if (alias) {
+      let op = (alias[4] ?? '').toLowerCase();
+      if (/^k\d/.test(op)) op = 'kh' + op.slice(1);
+      if (/^d\d/.test(op)) op = 'dl' + op.slice(1);
+      token = `${alias[1]}${alias[2] || '1'}d${alias[3] === '%' ? '100' : alias[3]}${op}`;
+    }
+
     if (/^[-+]?\d+$/.test(token)) {
       if (!Number.isSafeInteger(Number(token))) fail('Bônus deve usar inteiros seguros.');
       bonus += Number(token);
@@ -143,6 +151,8 @@ export function parseExpression(input: string): RollSpec {
       )
       .join('+')
       .replace(/\+-/g, '-') + (bonus ? `${bonus > 0 ? '+' : ''}${bonus}` : '');
+  if (normalized.length > 160)
+    fail('A expressão normalizada excede 160 caracteres. Reduza os grupos.');
   return { groups, bonus, mode, normalized, target: undefined };
 }
 function rollGroup(g: Group) {

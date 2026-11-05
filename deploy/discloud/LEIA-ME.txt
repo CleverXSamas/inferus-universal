@@ -24,3 +24,7 @@ O plano gratuito possui limites e pode suspender aplicações inativas.
 Monitore os logs e a RAM. Nenhum plano pago foi contratado.
 As licenças de terceiros estão preservadas no final de inferus.cjs.
 Este ZIP não contém credenciais válidas nem publica nada sozinho.
+
+V13: !d e !dice são aliases de !rolar; d20, d% e 4d6d1 são aceitos.
+Use !r 6#4d6d1 | Atributos para repetições (máximo 10 e 100 dados iniciais).
+!help e !ajuda dados orientam; !ping verifica a resposta do processo no canal.

@@ -54,3 +54,7 @@ npm run test:browser:edge
 ```
 
 `npm test` limpa os artefatos compilados antigos antes de executar a suíte. `npm run test:full` provisiona MySQL descartável com Docker; também aceita `TEST_DATABASE_URL` de banco dedicado a testes. Nunca use banco de produção. O CI executa os testes de persistência com MySQL. `npm run package:sites` prepara o Worker; `npm run package:bot` gera o ZIP do bot com token vazio.
+
+### Comandos V13
+
+Atalhos: `!d d20+5 Percepção`, `!dice d%`, `!r 6#4d6d1 | Atributos`, `!help`, `!ajuda dados` e `!ping`. Repetições têm resultados independentes, até dez por lote e cem dados iniciais no total. Os comandos anteriores continuam válidos. [Referências e limites](docs/BOT-REFERENCES.md).
